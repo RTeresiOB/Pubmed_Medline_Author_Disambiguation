@@ -192,6 +192,7 @@ int BlockingConfiguration::config_blocking( const char * filename, const string 
 	return 0;
 }
 
+// Function that reads BlockingConfig.txt and passes settings defined by it to disambiguator
 bool EngineConfiguration::config_engine(const char * filename, std::ostream & os) {
 	os << "Reading Engine Configuration from " << filename << " ... ..." << std::endl;
 	const char * delim = "=";
