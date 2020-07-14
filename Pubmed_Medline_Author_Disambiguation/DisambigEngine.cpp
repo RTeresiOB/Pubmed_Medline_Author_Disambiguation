@@ -2352,7 +2352,13 @@ void reconfigure_interactives ( const cRecord_Reconfigurator * pc, const cRecord
 
 
 void cAssignee::configure_assignee( const list < const cRecord *> & recs) {
-	static const unsigned int asgnumidx = cRecord::get_index_by_name(cAsgNum::static_get_class_name());
+	// Adding try catch block
+	try{
+	    static const unsigned int asgnumidx = cRecord::get_index_by_name(cAsgNum::static_get_class_name());
+	} catch(const char * e){
+		std::cout << "Caught error configuring assignee. Ignore this if running Pubmed Data.\n" <<
+		        *e << std::endl;
+	}
 
 	for ( list< const cRecord *>::const_iterator p = recs.begin(); p != recs.end(); ++p ) {
 		const cAsgNum * pasgnum = dynamic_cast < const cAsgNum *> ( (*p)->get_attrib_pointer_by_index(asgnumidx) );
