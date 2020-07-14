@@ -19,7 +19,7 @@ template <> const string cAttribute_Basic<cMiddlename>::attrib_group = "Personal
 
 ///////// PUBMED CHANGE ///////////
 template <> const string cAttribute_Basic<cSuffix>::class_name = "Suffix";
-template <> const string cAttribute_Basic<cSuffix>::attrib_group = "Personal"
+template <> const string cAttribute_Basic<cSuffix>::attrib_group = "Personal";
 ///////////////////////////////////
 
 //template <> const string cAttribute_Basic<cLatitude>::class_name = "Latitude";
