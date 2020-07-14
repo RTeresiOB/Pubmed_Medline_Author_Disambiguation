@@ -1636,7 +1636,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	static const unsigned int lastname_index = cRecord::get_similarity_index_by_name(cLastname::static_get_class_name());
 	static const unsigned int country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
 
-	static const bool country_check = true;
+	static const bool country_check = false;
 
 
 	//prescreening.
@@ -1751,14 +1751,19 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 }
 
 //// same as previous with country_check = false, but we introduce it in the function declaration
+// Getting an "Invalid storage class for a parameter" error. Moving static assignment of country check from parameter into body of function.
+// This function being called will result in an error if used with PUBMED data. I believe it will automatically be skipped since that data
+// does not include country.
 std::pair<const cRecord *, double> disambiguate_by_set (
                                                         const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
                                                         const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
                                                         const double prior,
-                                                        const cRatios & ratio,  const double mutual_threshold, static const bool country_check = true ) {
+                                                        const cRatios & ratio,  const double mutual_threshold, const bool country_check = true ) {
     static const unsigned int firstname_index = cRecord::get_similarity_index_by_name(cFirstname::static_get_class_name());
     static const unsigned int midname_index = cRecord::get_similarity_index_by_name(cMiddlename::static_get_class_name());
     static const unsigned int lastname_index = cRecord::get_similarity_index_by_name(cLastname::static_get_class_name());
+
+	static const bool country_check = true;
     
     
     //prescreening.
