@@ -361,6 +361,8 @@ bool EngineConfiguration::config_engine(const char * filename, std::ostream & os
 		return false;
 }
 
+// Main basically just holds the control sequence that tells  program whether to disambiguate
+// or calculate out-of-cluster density
 int main( int argc, char * argv[]) {
 	std::cout << std::endl;
 	std::cout << "====================== STARTING DISAMBIGUATION ===========================" << std::endl;
@@ -376,7 +378,7 @@ int main( int argc, char * argv[]) {
 	case 1:
 		enginefile = check_file_existence("Disambiguation Engine Configuration.");
 		blockingfile = check_file_existence("Disambiguation Blocking Configuration.");
-		Full_Disambiguation(enginefile.c_str(), blockingfile.c_str());
+		Full_Disambiguation(enginefile.c_str(), blockingfile.c_str()); // Disambiguation takes place here.
 		break;
 	case 2: {
 		enginefile = check_file_existence("Disambiguation Engine Configuration.");
@@ -432,7 +434,7 @@ int main( int argc, char * argv[]) {
 //******************************************************************************
 
 int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingConfigFile ) {
-    // The following line is weird - config_engine returns a 1 if  all fields are filled - so the next line throws an error if not all fields are filled
+    // Config_engine returns a 1 if  all fields are filled - so the next line throws an error if not all fields are filled
 	if ( ! EngineConfiguration::config_engine(EngineConfigFile, std::cout ) )
 		throw cException_Other("Engine Configuration is not complete!");
     
@@ -454,7 +456,7 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 	list <cRecord> all_records;
 	char filename2[buff_size];
 	sprintf(filename2, "%s", EngineConfiguration::source_csv_file.c_str());
-	bool is_success = fetch_records_from_txt(all_records, filename2, column_vec);
+	bool is_success = fetch_records_from_txt(all_records, filename2, column_vec); // This function lives in diambigEngine.cpp
 	if (not is_success) return 1;
 
 

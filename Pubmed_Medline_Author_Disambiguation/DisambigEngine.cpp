@@ -2051,7 +2051,7 @@ void copyfile(const char * target, const char * source) {
 
 bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns ){
 	std::ifstream::sync_with_stdio(false);
-	const char * delim = ",";	// this deliminator should never occur in the data.
+	const char * delim = ",";	// this deliminator should never occur in the data. WILL NEED TO CHANGE THIS
 	const unsigned int delim_size = strlen(delim);
 	std::ifstream infile(txt_file);
 	if ( ! infile.good()) {
@@ -2066,6 +2066,8 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	getline(infile, filedata); // Operating on  only the first line for now
 	register size_t pos, prev_pos;
 	pos = prev_pos = 0;
+
+	// Gets all possible column names
 	while (  pos != string::npos){ // Will return true until
 		pos = filedata.find(delim, prev_pos); // This function returns -1 - ie when there is no next delimitor
 		string columnname;
@@ -2076,9 +2078,12 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 		total_col_names.push_back(columnname);
 		prev_pos = pos + delim_size;
 	}
+	// Following line takes *vector* of requested columns and registers them
 	cAttribute::register_class_names(requested_columns);
 	const unsigned int num_cols = requested_columns.size();
 	vector < unsigned int > requested_column_indice;
+
+	// Looks for requested columns amongst column names and gets their indices to read file
 	for ( unsigned int i = 0; i < num_cols; ++i ) {
 		unsigned int j;
 		for (  j = 0; j < total_col_names.size(); ++j ) {
@@ -2094,8 +2099,9 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 		}
 	}
 
+	// Modify cRecord class to include only columns requested
 	cRecord::column_names = requested_columns;
-	cAttribute ** pointer_array = new cAttribute *[num_cols]; // Pointer to a pointer - look at constructor
+	cAttribute ** pointer_array = new cAttribute *[num_cols]; // Pointer to a pointer - look at constructor (see Notes.txt)
 
 	pos = prev_pos = 0;
 	unsigned int position_in_ratios = 0; // What is the position in ratios?

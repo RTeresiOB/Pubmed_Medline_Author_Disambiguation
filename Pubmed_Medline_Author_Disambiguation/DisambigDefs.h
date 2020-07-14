@@ -183,6 +183,10 @@ public:
  * Overloading the operator () for comparison between similarity profiles by their references or pointers.
  */
 
+/* PUBMED NOTE: 
+* May not be using lexicographical compare. Look to see where it is defined and what attributes it acts on.
+* /
+
 class cSimilarity_Compare {
 	class cException_Different_Similarity_Dimensions : public cAbstract_Exception {
 	public:

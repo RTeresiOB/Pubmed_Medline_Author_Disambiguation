@@ -1,0 +1,73 @@
+This notes file will be used to enter in notes to  myself  while updating the script.
+
+** To DO:
+Look to see where it is defined and what attributes it acts on.
+
+Template Classes Introduced and defined in DisambigDefs.h/cpp
+
+Template Classes/Base Classes Notes:
+    cAttribute:
+        Usually made as a pointer (is this to easily attach to cRecord?)
+
+
+Concrete classes (the classes where actual data are held) are introduced and defined in DisambigCustomizedDefs.h/cpp
+
+I wrote updated comparison functions somewhere in this folder, but am not sure where they are (find them). 
+    I believe they aren't actually attached to the running of the script, though. I think I have to import them
+        into their respective classes.
+
+PUBMED/MEDLINE implementation has no interactive variables (such as cLatitude and cLongitude).
+    I am relatively certain that the script will run fine without them (and any  other variables not included),
+        however this is something to test.
+
+
+Compiling the code does not work. Lots of small errors (such as not declaring variables/declaring them twice). 
+    Genuinely not sure why these are happening considering that the original author seems to have been confident that 
+        the script was functioning. It is possibly a matter of an updated GNU compiler (original script finished in 2013?).
+
+
+Class  Hierarchy as written Above cAttribute class in DisambigDefs.h. with new classes denoted.
+
+ * 0 .cAttribute
+ * 	1. template <> cAttribute_Basic
+ * 		2. template <> cAttribute_Intermediary
+ * 			3. template <> cAttribute_Set_Intermediary
+ * 				4. template <> cAttribute_Set_Mode
+ * 					5. cClass
+ * 					5. cCoauthor
+ *                  \\\\\\ PUBMED CHANGE \\\\\\
+ *                  5. cTitleWords      --  (completed?)
+ *                  5. cMeSH            --  (completed?)
+ *                  5. cAffiliations    --  (completed?)
+ *                  \\\\\\\\\\\\\\\\\\\\\\\\\\\
+ * 		2. template <> cAttribute_Vector_Intermediary
+ * 			3. template <> cAttribute_Vector_Mode
+ * 			3. template <> cAttribute_Single_Mode
+ * 				4. cFirstname
+ * 				4. cMiddlename
+ * 				4. cLastname
+ *              \\\\\\ PUBMED CHANGE \\\\\\
+ *              4. cSuffix              -- (completed?)
+ *              \\\\\\\\\\\\\\\\\\\\\\\\\\\
+ * 				4. cLongitude
+ * 				4. cCity
+ * 				4. cCountry
+ * 				4. cAsgNum
+ * 				4. cUnique_Record_ID
+ * 				4. cPatent
+ * 				4. cApplyYear
+ *				4. cStreet
+ *				4. cLatitude_Data
+ *				4. cLongitude_Data
+ *				4. cAssignee_Data
+ *              \\\\\\ PUBMED CHANGE \\\\\\
+ *              4. cJounal              -- (completed?)
+ *              4. cAffiliationExists   -- (completed?)
+ *              4. cLanguage            -- (completed?)
+ *              \\\\\\\\\\\\\\\\\\\\\\\\\\\
+ *
+ *		2. template<> cAttribute_Interactive_Mode
+ *			3. cLatitude
+ *			3. cLongitude
+ *			3. cAssignee
+
