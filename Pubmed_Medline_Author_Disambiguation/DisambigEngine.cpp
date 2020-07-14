@@ -1765,7 +1765,6 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 
 	static const bool country_check = true;
     
-    // Test connection to github
     //prescreening.
     const bool prescreening = true;
     if ( prescreening ) {
