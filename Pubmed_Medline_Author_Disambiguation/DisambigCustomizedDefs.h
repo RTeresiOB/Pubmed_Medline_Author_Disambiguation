@@ -89,7 +89,7 @@ public:
 
 ///// PUBMED CHANGE ////
 
-class cSuffix : public cAttribute_Single_Mode <cMiddlename> {
+class cSuffix : public cAttribute_Single_Mode <cSuffix> {
 public:
     static const unsigned int max_value = 1;
     
@@ -196,7 +196,6 @@ public:
 ///// PUBMED CHANGE //////
 // Add Pubmed Set variable classes
 class cTitleWords : public cAttribute_Set_Mode < cTitleWords >  {
-    // friend class cReconfigurator_Coauthor; No Friend class?
 public:
     static unsigned int const max_value =  100;   // Essentially no limit to how many words they can have in common
     
@@ -208,7 +207,17 @@ public:
 };
 
 class cAffiliations: public cAttribute_Set_Mode < cAffiliations >  {
-    // friend class cReconfigurator_Coauthor; No Friend class?
+public:
+    static unsigned int const max_value =  100;   // Essentially no limit to how many words they can have in common
+    
+    unsigned int get_attrib_max_value() const {
+        if ( ! is_comparator_activated() )
+            cAttribute::get_attrib_max_value();
+        return max_value;
+    }
+};
+
+class cMeSH: public cAttribute_Set_Mode < cMeSH >  {
 public:
     static unsigned int const max_value =  100;   // Essentially no limit to how many words they can have in common
     

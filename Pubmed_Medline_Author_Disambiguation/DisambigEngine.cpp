@@ -2105,7 +2105,7 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 
 	// Modify cRecord class to include only columns requested
 	cRecord::column_names = requested_columns;
-	cAttribute ** pointer_array = new cAttribute *[num_cols]; // Pointer to a pointer - look at constructor (see Notes.txt)
+	cAttribute ** pointer_array = new cAttribute *[num_cols]; // Declares an array, num_cols long, of pointers  to cAttribute
 
 	pos = prev_pos = 0;
 	unsigned int position_in_ratios = 0; // What is the position in ratios?
@@ -2220,6 +2220,11 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	return true;
 }
 
+//  Fills in array of pointers of cAttributes with their concrete type.
+//  Each reference passed to the function will be from requested_columns,
+//   filled in by the user in EngineConfig.txt.
+//  The concrete classes requested must have the same name returned by
+//    ::static_get_class_name as the column requested.
 cAttribute * create_attribute_instance ( const string & id ) { //
 	cAttribute *p = NULL;
 	if ( id == cFirstname::static_get_class_name() ) {
@@ -2270,8 +2275,24 @@ cAttribute * create_attribute_instance ( const string & id ) { //
 	else if ( id == cClass_M2::static_get_class_name() ) {
 		p = new cClass_M2;
 	}
-	else
+	// New PUBMED/MEDLINE classes added below
+	else if ( id == cTitleWords::static_get_class_name() ) {
+		p = new cTitleWords;
+	} else if ( id == cMeSH::static_get_class_name() ) {
+		p = new cMeSH;
+	} else if ( id == cAffiliations::static_get_class_name() ) {
+		p = new cAffiliations;
+	} else if ( id == cSuffix::static_get_class_name() ) {
+		p = new cSuffix;
+	} else if ( id == cAffiliation_Exists::static_get_class_name() ) {
+		p = new cAffiliation_Exists;
+	} else if ( id == cJournal::static_get_class_name() ) {
+		p = new cJournal;
+	} else if ( id == cLanguage::static_get_class_name() ) {
+        p = new cLanguage;
+	} else {
 		p = NULL;
+	}
 
 	return p;
 }
