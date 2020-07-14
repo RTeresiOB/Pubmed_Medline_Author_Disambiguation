@@ -2055,7 +2055,7 @@ void copyfile(const char * target, const char * source) {
 
 bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns ){
 	std::ifstream::sync_with_stdio(false);
-	const char * delim = ",";	// this deliminator should never occur in the data. WILL NEED TO CHANGE THIS
+	const char * delim = ",";	// this deliminator should never occur in the data.
 	const unsigned int delim_size = strlen(delim);
 	std::ifstream infile(txt_file);
 	if ( ! infile.good()) {
@@ -2119,7 +2119,9 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 			throw cException_ColumnName_Not_Found(cRecord::column_names[i].c_str());
 		}
 		else
-			pointer_array[i] = create_attribute_instance ( cRecord::column_names[i].c_str() ); // need to look up this function
+		    // Function documented directly beneath this fetch function. 
+			// Fills in pointer_array with pointers to concrete attribute classes (cFirstname, cJournal, etc.)
+			pointer_array[i] = create_attribute_instance ( cRecord::column_names[i].c_str() );
 // Think this is to get desired order reading columns regardless of input
 // Need to figure out why later in code so I can change it
 #if 0
@@ -2137,6 +2139,7 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 		}
 #endif
 
+        // As far as I can tell, no class has attrib_group == "None" 
 		if ( pointer_array[i]->get_attrib_group() != string("None") )
 			++position_in_ratios;
 	}
@@ -2145,11 +2148,13 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	for ( unsigned int i = 0; i < num_cols; ++i )
 		pointer_array[i]->check_interactive_consistency(cRecord::column_names);
 
+    // Prints class names (e.g. Firstname)
 	std::cout << "Involved attributes are: ";
 	for ( unsigned int i = 0; i < num_cols; ++i )
 		std::cout << pointer_array[i]->get_class_name() << ", ";
 	std::cout << std::endl;
 
+    // Prints actual names of classes (e.g. cFirstname)
 	std::cout << "Polymorphic data types are: ";
 	for ( unsigned int i = 0; i < num_cols; ++i )
 		std::cout << typeid(*pointer_array[i]).name()<< ", ";
@@ -2160,14 +2165,20 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	for ( unsigned int i = 0; i < num_cols; ++i ) {
 		string_cache.at(i).reserve(string_cache_size);
 	}
-    //// Here is where the real file reading starts
+    // Here is where the source file reading starts
 	unsigned long size = 0;
 	std::cout << "Reading " << txt_file << " ......"<< std::endl;
 
-	const unsigned int base  =  100000; // This needs to be changed to the number of records !!!!!
+    // base used below to space out printing of read-progress to console
+	const unsigned int base  =  100000;
 	const cAttribute * pAttrib;
 	vector <const cAttribute *> temp_vec_attrib;
 	vector <const cAttribute *> Latitude_interactive_attribute_pointers;
+
+	// While loop that reads input file one line at a time and reads it into filedata.
+	//
+	// getline ends lines at \n (which is what I assume most all .csv's entered will do,
+	//  but it's worth noting).
 	while (getline(infile, filedata) ) {
 		temp_vec_attrib.clear();
 
@@ -2175,44 +2186,65 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 		for ( unsigned int i = 0; i < num_cols ; ++i ) { // Going through number of cols
 			unsigned int column_location = 0;
 			pos = prev_pos = 0;
-			while ( column_location++ != requested_column_indice.at(i) ) { // And getting which one they want in what order they want it (but why?)
+
+			// There can be more columns than we are using for disambig, so we skip over
+			// columns we aren't using with this loop.
+			while ( column_location++ != requested_column_indice.at(i) ) {
 				pos = filedata.find(delim, prev_pos);
 				prev_pos = pos + delim_size;
 			}
 			pos = filedata.find(delim, prev_pos);
-			if ( pos == string::npos ) { // Truthfully not sure why this would happen here?
+
+			// Previous function returns string::npos if delimiter not found after prev_pos
+			if ( pos == string::npos ) {
+				// If previous position wasn't end of line, we take data after last delimiter
 				if ( prev_pos != filedata.size() )
 					string_cache[i] = filedata.substr(prev_pos);
+				// Otherwise, if our previous position was the size of the line then the data is empty
 				else
 					string_cache[i] = "";
 			}
 			else {
+				// Data is between previous delimiter and subsequent delimitor
 				string_cache[i] = filedata.substr(prev_pos, pos - prev_pos);
 			}
 
+            // Set the data of the class entry in our pointer array to the data read
 			pointer_array[i]->reset_data(string_cache[i].c_str());
 			pAttrib = pointer_array[i]->clone();	//HERE CREATED NEW CLASS INSTANCES.
+
+			// Add classes to a temp_vec that will hold line's data (reset at top of while)
 			temp_vec_attrib.push_back(pAttrib);
 		}
+        // Initialize a record by attaching our class attributes
+		cRecord temprec(temp_vec_attrib);
 
-		cRecord temprec(temp_vec_attrib); // ?
-		source.push_back( temprec ); //
+		// Push the cRecord to the back of the source vector
+		source.push_back( temprec );
 
+        // Size of our data is now one larger
 		++size;
+
+		// Print progress every base (100000 rows)
 		if ( size % base == 0 )
 			std::cout << size << " records obtained." << std::endl;
 	}
 	std::cout << std::endl;
 	std::cout << size << " records have been fetched from "<< txt_file << std::endl;
-	cRecord::sample_record_pointer = & source.front();
 
+	// Store pointer to sample record to check successful read
+	cRecord::sample_record_pointer = & source.front();
+ 
+    // delete pointer_array (this isn't done automatically at end of function call?)
 	for ( unsigned int i = 0; i < num_cols; ++i )
 		delete pointer_array[i];
 	delete [] pointer_array;
 
+    // No interactives for PUBMED data
 	for ( list< cRecord>::iterator ci = source.begin(); ci != source.end(); ++ci )
 		ci->reconfigure_record_for_interactives();
 
+    // Print our sample record.
 	std::cout << "Sample Record:---------" << std::endl;
 	cRecord::sample_record_pointer->print();
 	std::cout << "-----------------" << std::endl;
@@ -2225,6 +2257,7 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 //   filled in by the user in EngineConfig.txt.
 //  The concrete classes requested must have the same name returned by
 //    ::static_get_class_name as the column requested.
+//  static_get_class_name is one line function just returning class_name of class
 cAttribute * create_attribute_instance ( const string & id ) { //
 	cAttribute *p = NULL;
 	if ( id == cFirstname::static_get_class_name() ) {

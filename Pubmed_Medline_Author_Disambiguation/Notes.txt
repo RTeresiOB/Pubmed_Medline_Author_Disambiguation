@@ -1,7 +1,10 @@
 This notes file will be used to enter in notes to  myself  while updating the script.
 
 ** To DO:
-Look to see where it is defined and what attributes it acts on.
+- Look to see where it is defined and what attributes it acts on. (Wait, what is *it*?)
+- Install IBM CPLEX on cluster
+- Not sure, but possible print a record other than what's at the top of the source file at the end of fetch
+  records from text. 
 
 Template Classes Introduced and defined in DisambigDefs.h/cpp
 
@@ -9,7 +12,8 @@ Template Classes/Base Classes Notes:
     cAttribute:
         Usually made as a pointer (is this to easily attach to cRecord?)
 
-
+DELIMITER: Delimiter on text reading function separates by the ',' character. Need to decide whether to change this to a different character,
+           or replace ',' characters in our data. (Not sure if we will actually have any ','s. Definitely check this before running.)
 Concrete classes (the classes where actual data are held) are introduced and defined in DisambigCustomizedDefs.h/cpp
 
 I wrote updated comparison functions somewhere in this folder, but am not sure where they are (find them). 
