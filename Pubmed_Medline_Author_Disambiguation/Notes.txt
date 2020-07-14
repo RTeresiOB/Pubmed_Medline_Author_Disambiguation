@@ -1,10 +1,12 @@
 This notes file will be used to enter in notes to  myself  while updating the script.
 
+Left off at Disambigmain.cpp line 470
 ** To DO:
 - Look to see where it is defined and what attributes it acts on. (Wait, what is *it*?)
 - Install IBM CPLEX on cluster
 - Not sure, but possible print a record other than what's at the top of the source file at the end of fetch
   records from text. 
+- Test try catch added for cAssignee::configure_assignee()
 
 Template Classes Introduced and defined in DisambigDefs.h/cpp
 

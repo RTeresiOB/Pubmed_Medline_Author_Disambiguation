@@ -459,13 +459,15 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 	bool is_success = fetch_records_from_txt(all_records, filename2, column_vec); // This function lives in diambigEngine.cpp
 	if (not is_success) return 1;
 
-
+    // Create list of pointers to our cRecords from our list of cRecords
 	list < const cRecord *> all_rec_pointers;
 	for ( list<cRecord>::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
 		all_rec_pointers.push_back(&(*p));
+	
+	// Edited this to catch error if not using cAssignee (as in Pubmed usage)
 	cAssignee::configure_assignee(all_rec_pointers);
 
-	//patent stable
+	//patent stable LEFT OFF HERE
 	const string training_stable [] = { working_dir + "/xset03_stable.txt",
 												working_dir + "/tset02_stable.txt" };
 	const vector<string> training_stable_vec ( training_stable, training_stable + sizeof(training_stable)/sizeof(string));
