@@ -482,6 +482,8 @@ void find_rare_names_v2(const vector < cGroup_Value * > &vec_pdest, const list< 
 	const vector <string> blocking_columns(blocks, blocks + num_columns_for_blocking);
 	const cString_Remain_Same do_not_change;
 	const vector <const cString_Manipulator *> blocking_operator_pointers( num_columns_for_blocking, &do_not_change);
+
+	// Create block of records with first and last names
 	cBlocking fullname(source, blocking_columns, blocking_operator_pointers, cUnique_Record_ID::static_get_class_name());
 
 
@@ -490,12 +492,14 @@ void find_rare_names_v2(const vector < cGroup_Value * > &vec_pdest, const list< 
 	unsigned int size;
 	const char * delim = " ";
 	size_t position, prev_pos;
-	map < string, cWord_occurrence >::iterator pword_map;
+	map < string, cWord_occurrence >::iterator pword_map;  // map<string, pair< unsigned int, unsigned int >
 	map < string, cWord_occurrence >::const_iterator cpword_map;
 
 	const string rarename_txt = "Rare_Names.txt";
 	std::ofstream outfile ( rarename_txt.c_str() );
 	std::cout << "Rare names are saved in the file " << rarename_txt << std::endl;
+
+	// Loop through first names and last names (?)
 	for ( unsigned int kkk = 0; kkk < vec_pdest.size(); ++kkk) {
 		map < string, cWord_occurrence > word_map;
 		set <string> chosen_words;
@@ -511,10 +515,14 @@ void find_rare_names_v2(const vector < cGroup_Value * > &vec_pdest, const list< 
 				string temp = info.substr(prev_pos, position - prev_pos);
 				pword_map = word_map.find(temp);
 				if ( pword_map == word_map.end() ) {
+					//	Create pairing (to be added to map) with name and stats
+					//	(occurred in 1 record list, size--n_records many times)
 					word_map.insert(std::pair<string, cWord_occurrence>(temp, cWord_occurrence(1, size)) );
 				}
 				else {
+					// Increase the number of blocks/record lists found in by one
 					++ (pword_map->second.first);
+					//	Increase number of records by size of block
 					pword_map->second.second += size;
 				}
 				if ( position == string::npos )
@@ -526,8 +534,10 @@ void find_rare_names_v2(const vector < cGroup_Value * > &vec_pdest, const list< 
 		unsigned int num_chosen_words = 0;
 		const unsigned int base = 1000;
 		//step 3: find words whose unique phrase occurrence is low but total occurrence is not too low.
+		//	Number of blocks less than four, number of total occurrences between 6 and 100
 		for ( cpword_map = word_map.begin(); cpword_map != word_map.end(); ++cpword_map ) {
 			if (cpword_map->second.first < 4  && cpword_map->second.second > 6 && cpword_map->second.second < 100 ) {
+				// Add the name to chosen_words set
 				chosen_words.insert(cpword_map->first);
 				++ num_chosen_words;
 				if ( num_chosen_words % base == 0 )
@@ -544,6 +554,8 @@ void find_rare_names_v2(const vector < cGroup_Value * > &vec_pdest, const list< 
 		num_chosen_words = 0;
 		set < string > in_phrase_wordset;
 
+		// Going back through every list of records  (unique names) we see if a substring of them matches one of our unique words
+		// if they do, we add one pointer to a record to vec_pdest (in the first or last name slot) and add the name to our Rare_Names.txt
 		for ( map < string, cGroup_Value >::const_iterator p = fullname.get_block_map().begin(); p != fullname.get_block_map().end() ; ++p ) {
 			const string & info = * (*(p->second.begin()))->get_data_by_index(cindex).at(0);
 			in_phrase_wordset.clear();
@@ -582,12 +594,13 @@ void find_rare_names_v2(const vector < cGroup_Value * > &vec_pdest, const list< 
 unsigned int create_tset02(list <pointer_pairs> &results, 	const list <const cRecord*> & reclist,
 											 const vector <string> & column_names,
 											 const vector < const cGroup_Value * > & vec_prare_names, const unsigned int limit ) {
-	//equal_indice should be the indices of the names in this case.
+	// Columns should match input data (first and last names)
 	if ( column_names.size() > vec_prare_names.size() ) {
 		std::cout << "ERROR: Number of input column names > size of vector of rare names." << std::endl;
 		throw cException_Other("Wrong column names");
 	}
 
+	// Get indices of column names
 	vector < unsigned int > column_indice;
 	for ( vector<string>::const_iterator p = column_names.begin(); p != column_names.end(); ++p )
 		column_indice.push_back(cRecord::get_index_by_name(*p));
@@ -599,30 +612,44 @@ unsigned int create_tset02(list <pointer_pairs> &results, 	const list <const cRe
 
 	set < pointer_pairs >  answer;
 	const unsigned int base = 100000;
+
+	// For every column (I believe just first and last name)
 	for ( unsigned int i = 0; i < column_names.size(); ++i) {
 		const unsigned int col_index = column_indice.at(i);
+
+		// Make a mapping of rare names to cGroupValue (list of pointers to cRecords)
 		map < string, cGroup_Value > data_map;
+
+		// For each rare first name (first loop)/last name(second loop) insert a pair into the mapping
+		//	string = rare name, emptyone = empty list of records
 		for ( cGroup_Value::const_iterator p = vec_prare_names[i]->begin(); p != vec_prare_names[i]->end(); ++p ) {
 			data_map.insert(std::pair<string, cGroup_Value >( * (*p)->get_data_by_index(col_index).at(0), emptyone));
 		}
+		// Now go through every record, return the pair from the mapping with the same name as the record,
+		//	then add the pointer to the record to the back of the list of *cRecords associated with the name
 		for (list<const cRecord*>::const_iterator q = reclist.begin(); q != reclist.end(); ++q ) {
 			pm = data_map.find( * (*q)->get_data_by_index(col_index).at(0));
 			if ( pm != data_map.end() )
 				//pm->second.insert(*q);
 				pm->second.push_back(*q);
 		}
+		// Now iterate through our map (returns map one pair at a time)
 		for ( cpm = data_map.begin(); cpm != data_map.end(); ++cpm ) {
+			//	Iterate through the list of records associated with the pair (the second entry in the pair)
 			for (cGroup_Value::const_iterator rr = cpm->second.begin(); rr != cpm->second.end(); ++rr ) {
 				cGroup_Value::const_iterator ss = rr;
 				++ss;
+				//	Going through each unique pairing
 				for ( ; ss != cpm->second.end(); ++ss) {
 					bool data_ok = true;
+					// If the two records don't have the same name associated with them, we do nothing
 					for ( unsigned int j = 0; j < column_indice.size(); ++j) {
 						if ( (*rr)->get_data_by_index(column_indice.at(j)) != (*ss)->get_data_by_index(column_indice.at(j)) ) {
 							data_ok = false;
 							break;
 						}
 					}
+					//	If they do, then we add the pair to our "answer" variable and write it to our results at the end
 					if ( data_ok ) {
 						answer.insert(pointer_pairs( *rr, *ss));
 						++count;
@@ -646,13 +673,16 @@ unsigned int create_tset02(list <pointer_pairs> &results, 	const list <const cRe
 
 unsigned int create_xset03(list <pointer_pairs> &results, 	const list <const cRecord*> & reclist,
 							const vector < const cGroup_Value * > & vec_prare_names, const unsigned int limit ) {
+	// Create list of pointers to records
 	cGroup_Value pool;
+	// Loop through vec_prare_names and add rare names to list of pointers to records
 	for ( unsigned int i = 0; i < vec_prare_names.size(); ++i) {
 		//pool.insert(vec_prare_names.at(i)->begin(), vec_prare_names.at(i)->end());
 		pool.insert(pool.end(), vec_prare_names.at(i)->begin(), vec_prare_names.at(i)->end());
 	}
 	unsigned int count = 0;
 	const unsigned int base = 100000;
+	// Make all unique pairs of record pointers with different names ??? (am I missing something?)
 	for ( cGroup_Value::const_iterator p = pool.begin(); p != pool.end(); ++p ) {
 		cGroup_Value::const_iterator q = p;
 		for ( ++q; q != pool.end(); ++q ) {

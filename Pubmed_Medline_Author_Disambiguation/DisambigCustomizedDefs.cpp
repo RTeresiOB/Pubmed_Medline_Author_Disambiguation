@@ -81,6 +81,7 @@ template <> const string cAttribute_Basic<cAssignee>::attrib_group = "Patent";
 
 template <> const string cAttribute_Basic<cAsgNum>::class_name = "AsgNum";
 
+// Not PMID, more like row number!
 template <> const string cAttribute_Basic<cUnique_Record_ID>::class_name = "Unique_Record_ID";
 
 template <> const string cAttribute_Basic<cApplyYear>::class_name = "ApplyYear";

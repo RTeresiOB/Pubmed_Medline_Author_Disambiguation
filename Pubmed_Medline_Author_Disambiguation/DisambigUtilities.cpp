@@ -178,21 +178,30 @@ bool make_stable_training_sets_by_personal( const list <cRecord> & all_records, 
 	cPrint_Pair do_print(outfile, cUnique_Record_ID::static_get_class_name());
 	const char * current_file;
 	vector<cGroup_Value *> rare_pointer_vec;
-	rare_pointer_vec.push_back(&rare_firstname_set);
-	rare_pointer_vec.push_back(&rare_lastname_set);
+
+	// Pushing pointers to cGroup_Value (list< *cRecord >) to back of vector
+	rare_pointer_vec.push_back(&rare_firstname_set); // Records with rare first names
+	rare_pointer_vec.push_back(&rare_lastname_set); // Records with rare last names
+
+	// Initialize const version of rare_pointer_vec from that vector
 	const vector< const cGroup_Value * > const_rare_pointer_vec(rare_pointer_vec.begin(), rare_pointer_vec.end());
 
+    // Create list of pointers to every cRecord item
 	list < const cRecord*> record_pointers;
 	for ( list<cRecord>::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
 		record_pointers.push_back(&(*p));
 
+	// Creates Rare_Names.txt and puts pointers to unique rare names into rare_pointer_vec
 	find_rare_names_v2(rare_pointer_vec, record_pointers);
 	list<pointer_pairs> pair_list;
 	vector <string> rare_column_names;
 	rare_column_names.push_back(string(cFirstname::static_get_class_name()));
 	rare_column_names.push_back(string(cLastname::static_get_class_name()));
 
+
 	//xset03
+	// This creates a non-match set that assumes that different authors listed on the same
+	// record/article are different people.
 	pair_list.clear();
 	create_xset03(pair_list, record_pointers, const_rare_pointer_vec, limit);
 	current_file = training_filenames.at(0).c_str();
@@ -206,9 +215,13 @@ bool make_stable_training_sets_by_personal( const list <cRecord> & all_records, 
 
 
 	//tset02
+	// 	This creates a match training set that assumes that articles written
+	//	by those with the same, rare names are in fact the same people.
+
 	pair_list.clear();
 	create_tset02(pair_list, record_pointers, rare_column_names, const_rare_pointer_vec, limit);
 
+	// Write to file
 	current_file = training_filenames.at(1).c_str();
 	outfile.open(current_file);
 	if ( ! outfile.good() )

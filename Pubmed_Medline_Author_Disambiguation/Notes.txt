@@ -1,8 +1,9 @@
-This notes file will be used to enter in notes to  myself  while updating the script.
+This notes file will be used to enter in notes to myself  while updating the script.
 
-Left off at Disambigmain.cpp line 470
+// cGroup_Value is a list of const cRecord pointers. This definition will be used throughout the whole project.
+
+Left off at Disambigmain.cpp line 492
 ** To DO:
-- Look to see where it is defined and what attributes it acts on. (Wait, what is *it*?)
 - Install IBM CPLEX on cluster
 - Not sure, but possible print a record other than what's at the top of the source file at the end of fetch
   records from text. 
@@ -30,6 +31,9 @@ PUBMED/MEDLINE implementation has no interactive variables (such as cLatitude an
 Compiling the code does not work. Lots of small errors (such as not declaring variables/declaring them twice). 
     Genuinely not sure why these are happening considering that the original author seems to have been confident that 
         the script was functioning. It is possibly a matter of an updated GNU compiler (original script finished in 2013?).
+
+cUnique_Record_ID's could perhaps have its class name changed to PMID (DisambigDefs.cpp). Not sure about this at the moment.
+
 
 
 Class  Hierarchy as written Above cAttribute class in DisambigDefs.h. with new classes denoted.

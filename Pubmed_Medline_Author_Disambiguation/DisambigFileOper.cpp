@@ -24,18 +24,26 @@ const cRecord * retrieve_record_pointer_by_unique_id(const string & uid, const m
 }
 
 void create_btree_uid2record_pointer(map<string, const cRecord *> & uid_tree, const list<cRecord> & reclist, const string& uid_name ) {
+	// Clear index if not already done
 	uid_tree.clear();
+	// Get index of identifiers in cRecord class
 	const unsigned int uid_index = cRecord::get_index_by_name(uid_name);
 	cException_Vector_Data except(uid_name.c_str());
 	map <string, const cRecord *>::iterator pm;
+	// For every record...
 	for ( list<cRecord>::const_iterator p = reclist.begin(); p != reclist.end(); ++p ) {
+		// Get pointer to id variable
 		const cAttribute * pattrib = p->get_attrib_pointer_by_index(uid_index);
 		//if ( pattrib->get_data().size() != 1 )
 		//	throw except;
+		// then get the data
 		const string & label = * pattrib->get_data().at(0);
+		// Look to see if the identifier is in the tree already
 		pm = uid_tree.find( label );
 		if ( pm != uid_tree.end())
+			// If it is, throw an error for duplicate observation
 			throw cException_Duplicate_Attribute_In_Tree(label.c_str());
+		// Otherwise insert into tree and continue through loop
 		uid_tree.insert(std::pair< string, const cRecord *>(label, &(*p)));
 	}
 }

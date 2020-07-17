@@ -467,24 +467,29 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 	// Edited this to catch error if not using cAssignee (as in Pubmed usage)
 	cAssignee::configure_assignee(all_rec_pointers);
 
-	//patent stable LEFT OFF HERE
 	const string training_stable [] = { working_dir + "/xset03_stable.txt",
 												working_dir + "/tset02_stable.txt" };
+	
+	// This makes the vector equivalent of the previously initialized array
 	const vector<string> training_stable_vec ( training_stable, training_stable + sizeof(training_stable)/sizeof(string));
 	if ( train_stable )
+		// Creates non-match set 2 (same ID, different author), and match set 3 (authors share same rare name)
 		make_stable_training_sets_by_personal ( all_records, limit, training_stable_vec);
 
 	map <string, const cRecord *> uid_dict;
 	const string uid_identifier = cUnique_Record_ID::static_get_class_name();
+	// Populate uid_dict (will map value of unique identifier with the pointer to its cRecord)
 	create_btree_uid2record_pointer(uid_dict, all_records, uid_identifier);
 
-	//train patent info
-	cRatioComponent patentinfo(uid_dict, string("Article") );
+	// train patent info 
+
+	// create cRatioComponent class (constructor only attaches uid and names the component Article)
+	cRatioComponent patentinfo(uid_dict, string("Article") ); 
 
 	list < const cRecord * > record_pointers;
 
 	bool matching_mode = true;
-
+	// LEFT OFF HERE
 	cCluster_Info match ( uid_dict, matching_mode, frequency_adjust_mode, debug_mode);
 	match.set_thresholds( threshold_vec);
 
