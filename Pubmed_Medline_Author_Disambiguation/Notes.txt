@@ -8,6 +8,8 @@ Left off at Disambigmain.cpp line 492
 - Not sure, but possible print a record other than what's at the top of the source file at the end of fetch
   records from text. 
 - Test try catch added for cAssignee::configure_assignee()
+- DisambigCustomizedDefs.cpp is where attribute compare functions defined. 
+        (Check class hierarchies for default functions on single mode and set mode)
 
 Template Classes Introduced and defined in DisambigDefs.h/cpp
 
