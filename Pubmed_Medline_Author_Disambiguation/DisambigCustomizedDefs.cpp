@@ -323,6 +323,26 @@ unsigned int cLongitude::compare(const cAttribute & right_hand_side) const {
 	}
 }
 
+unsigned int cJournal::compare(const cAttribute & right_hand_side) const {
+	if ( ! is_comparator_activated () )
+		throw cException_No_Comparision_Function(static_get_class_name().c_str());
+	try {
+		unsigned int res = 0;
+		const bool exact_same = this->exact_compare(right_hand_side) == 1 ;
+		if ( exact_same && this->is_informative())
+			res = 1;
+
+		if ( res > max_value )
+			res = max_value;
+		return res;
+	}
+	catch ( const std::bad_cast & except ) {
+		std::cerr << except.what() << std::endl;
+		std::cerr << "Error: " << this->get_class_name() << " is compared to " << right_hand_side.get_class_name() << std::endl;
+		throw;
+	}
+}
+
 
 /*
  * cClass_M2::compare
