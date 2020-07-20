@@ -104,7 +104,7 @@ public:
  * This class is used as an intermediate step to finalize a cRatio object. In the current engine, a complete similarity
  * profile is composed of two parts, and each part has several components:
  * Personal: cFirstname, cMiddlename, cLastname, cSuffix
- * Patent: cLatitude, cAssignee, cCoauthor, cClass
+ * Patent: cLatitude, cAssignee, cCoauthor, cClass -- PUBMED (cCoauthor, cJournal, cAffiliations, cMeSH)
  * A cRatioComponent object usually takes care of one part of the similarity profiles, and a cRatio object ( will be
  * introduced below ) reads all the necessary cRatioComponent objects to finalize, after which the cRatioComponents are
  * useless.
