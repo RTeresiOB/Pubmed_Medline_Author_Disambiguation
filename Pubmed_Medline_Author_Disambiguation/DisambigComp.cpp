@@ -618,4 +618,82 @@ int name_compare( const string & s1, const string & s2, const unsigned int prev,
 
 }
 
+/*
+int namecmp(const string & s1, const string & s2, const map<string,string> &nickname_map) {
+    
+    // If names are exact matches, we return 11
+    if(s1==s2){
+        return 11;
+    }
+
+    // If names are the same except for hyphen (or space, but same middle name thing happens here). Return 10
+    const char * p1 = s1.c_str();
+    const char * p2 = s2.c_str();
+    
+    int n_match = 0; // Keep track of how many characters match - not going to count hyphens
+    
+    // We will manually break out of the while loop
+    while(1){
+        
+        // If both letters match up to a hyphen
+        if(*p1 == '-' && *p2 == '-'){
+            // Iterate
+            p1++; p2++;
+            if(*p1 == *p2){ // If first letter after the initials are the same, iterate
+                p1++; p2++; n_match++;
+                if(*p1 == '\0' || *p2 == '\0') return 9; // If one of the strings ends, return 9 (won't both end because strings not the same) jean-francois vs. jean-f
+            }
+            // Enter here if one string ends and the other has a hyphen
+        } else if((*p1 == '-' && *p2 == '\0' ) || (*p2 == '-' && *p1 == '\0' )){
+            // return 9 if one name is full (more than one character, otherwise return 8
+            // Need to make identical if clauses in case it's either string
+            if(*p1 == '-'){
+                // Three possibilities.
+                if(*p1++ != '\0'){
+                    // More than one character after hyphen returns 9
+                    if(*p1++ != '\0'){
+                        return 9;
+                    } else{ // One character after hyphen returns 8
+                        return 8;
+                    }
+                } else{ // In this weird case : jean- vs jean assign 5 (one character distance)
+                    return 5;
+                }
+            }
+            if(*p2 == '-'){
+                if(*p2++ != '\0'){
+                    
+                    if(*p2++ != '\0'){
+                        return 9;
+                    } else{
+                        return 8;
+                    }
+                } else{ // In this weird case : jean- vs jean assign 5 (one character distance)
+                    return 5;
+                }
+            }
+        }
+        if ( *p1 != *p2){
+            break;
+        } else {
+            p1++; p2++; n_match++; // Go ahead in the loop and raise the number of matched characters
+        }
+        if( *p1 == *p2 && *p1 == '\0' && *p2  == '\0' ) return 10; // return 10 if we get to the end of both strings (they will end @ same time) and they still match
+    }
+    
+    if(n_match == 2){
+        return 2; // thomas vs th
+    } else if(n_match > 2){
+        return 3; // thomas vs tho (or more, but less than perfect)
+    }
+    // Not sure how to implement initials matching, how to differentiate between middlename? - returns 2
+    // If one or both names missing, return 1
+    if ( s1.empty() || s2.empty() )
+        return 1;
+    
+    // If we get to the end and none of the above satisfied, return 0
+    return 0;
+}
+
+*/
 
