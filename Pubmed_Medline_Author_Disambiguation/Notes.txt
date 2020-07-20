@@ -10,6 +10,7 @@ Left off at Disambigmain.cpp line 492
 - Test try catch added for cAssignee::configure_assignee()
 - DisambigCustomizedDefs.cpp is where attribute compare functions defined. 
         (Check class hierarchies for default functions on single mode and set mode)
+- Implement Email matching.
 
 Template Classes Introduced and defined in DisambigDefs.h/cpp
 
