@@ -29,7 +29,7 @@ class cRatios;
 /*
  * cCluster_Info:
  * This class is a key class for the whole disambiguation. It enables loading the previous disambiguation results from
- * a source file, grouping clusters by blocking, configuring priori probabilities for each block, running the disambiguation
+ * a source file, grouping clusters by blocking, configuring a priori probabilities for each block, running the disambiguation
  * process, and exporting the results to an external file that can be used for the next run.
  *
  * Private:
@@ -91,7 +91,7 @@ class cRatios;
  *				The function that starts the disambiguation. ratiosmap = a cRatios object.
  *				num_threads = number of threads. For maximum performance it is recommended to be number of CPUs in the machine.
  *				debug_block_file = the file from which specific blocking ids are read and set active. If it is an invalid file, it is ignored.
- *				prior_to_save = the file to which the priori probability history of each block will be saved. Perfect for analysis and debugging.
+ *				prior_to_save = the file to which the a priori probability history of each block will be saved. Perfect for analysis and debugging.
  *		~cCluster_Info(): destructor.
  *		const map < string, cRecGroup> & get_cluster_map () const: return the variable cluster_by_block.
  *		bool is_matching_cluster() const: return whether the variable "is_matching" of the object.
