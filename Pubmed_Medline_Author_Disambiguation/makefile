@@ -5,7 +5,7 @@
 CXX=g++
 CC=gcc
 CFLAGS=-O0 -g -Wall -fno-inline -I/usr/local/include -L/usr/local/lib
-CFLAGS=-O3 -g -Wall -I/usr/local/include -L/usr/local/lib
+CFLAGS=-O3 -g -Wall -I/usr/local/include -L/usr/local/lib -std=c++11
 OOQPINCLUDEDIR=/usr/local/include/ooqp
 ILOGINSTALLDIR=/home/ysun/ILOG/CPLEX_Studio_AcademicResearch122
 
