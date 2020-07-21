@@ -489,7 +489,7 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 	list < const cRecord * > record_pointers;
 
 	bool matching_mode = true;
-	// LEFT OFF HERE
+
 	cCluster_Info match ( uid_dict, matching_mode, frequency_adjust_mode, debug_mode);
 	match.set_thresholds( threshold_vec);
 
