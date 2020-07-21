@@ -50,6 +50,9 @@ void cRatioComponent::sp_stats (const list<std::pair<string, string> > & trainpa
 	const map <string, const cRecord *> & dict = *puid_tree;
 	map<string, const cRecord *>::const_iterator pm;
 	map < vector < unsigned int >, unsigned int, cSimilarity_Compare >::iterator psp;
+
+	// For every training pair compare the two cAttribute records and get a similarity profile.
+	// Saev results in item of map (how many times does this similarity profile occur?)
 	for ( list< std::pair<string, string> >::const_iterator p = trainpairs.begin(); p != trainpairs.end(); ++p ) {
 		pm = dict.find(p->first);
 		if ( pm == dict.end() )
@@ -60,6 +63,7 @@ void cRatioComponent::sp_stats (const list<std::pair<string, string> > & trainpa
 			throw cException_Attribute_Not_In_Tree( ( string("\"") + p->second + string ("\"") ).c_str() );
 		const cRecord *prhs = pm->second;
 		
+		// I am assuming this gets a vector output of the similarity score output in the order of the indices
 		vector < unsigned int > similarity_profile = plhs->record_compare_by_attrib_indice(*prhs, component_indice_in_record);
 		//debug only
 		//std::cout << "Size of Similarity Profile = "<< similarity_profile.size() << ". Similarity Profile = ";
@@ -68,6 +72,8 @@ void cRatioComponent::sp_stats (const list<std::pair<string, string> > & trainpa
 		//std::cout << std::endl;
 		//end of debug
 		psp = sp_counts.find(similarity_profile);
+
+		// If profile isn't in map, insert. Otherwise, iterate the count of how many times it occurs upwards
 		if ( psp == sp_counts.end() )
 			sp_counts.insert( std::pair < vector <unsigned int>, unsigned int >(similarity_profile, 1));
 		else {
