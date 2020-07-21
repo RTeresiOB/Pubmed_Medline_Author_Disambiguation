@@ -1,16 +1,22 @@
 This notes file will be used to enter in notes to myself  while updating the script.
 
+ENCODING = UTF-8
+DELIMITER for set variables is '/'
+DELIMITER for .csv is ','
+
 // cGroup_Value is a list of const cRecord pointers. This definition will be used throughout the whole project.
 
 Left off at Disambigmain.cpp line 492
 ** To DO:
-- Install IBM CPLEX on cluster
+- Install IBM CPLEX on cluster (Installed on local computer)
 - Not sure, but possible print a record other than what's at the top of the source file at the end of fetch
-  records from text. 
-- Test try catch added for cAssignee::configure_assignee()
+  records from text?
+- Create unit test try catch added for cAssignee::configure_assignee()
 - DisambigCustomizedDefs.cpp is where attribute compare functions defined. 
-        (Check class hierarchies for default functions on single mode and set mode)
-- Implement Email matching.
+        (Check class hierarchies for default functions on single mode and set mode - checked. Inherited from base classes)
+- Implement Email matching. 
+    - Matching emails have manually assigned r-values.
+    - This should be implemented after initial run-through.
 
 Template Classes Introduced and defined in DisambigDefs.h/cpp
 
