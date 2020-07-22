@@ -12,8 +12,11 @@ Left off at Disambigmain.cpp line 492
 - Not sure, but possible print a record other than what's at the top of the source file at the end of fetch
   records from text?
 - Create unit test try catch added for cAssignee::configure_assignee()
-- DisambigCustomizedDefs.cpp is where attribute compare functions defined. 
+
+- DONE: DisambigCustomizedDefs.cpp is where attribute compare functions defined. 
         (Check class hierarchies for default functions on single mode and set mode - checked. Inherited from base classes)
+    - Comparison functions are virtual functions within the base classes for each attribute type.
+        They must be declared and overridden in the concrete classes for customized behavior.
 - Implement Email matching. 
     - Matching emails have manually assigned r-values.
     - This should be implemented after initial run-through.
@@ -28,7 +31,7 @@ DELIMITER: Delimiter on text reading function separates by the ',' character. Ne
            or replace ',' characters in our data. (Not sure if we will actually have any ','s. Definitely check this before running.)
 Concrete classes (the classes where actual data are held) are introduced and defined in DisambigCustomizedDefs.h/cpp
 
-I wrote updated comparison functions somewhere in this folder, but am not sure where they are (find them). 
+I wrote updated comparison functions somewhere in this folder, but am not sure where they are (find them - FOUND). 
     I believe they aren't actually attached to the running of the script, though. I think I have to import them
         into their respective classes.
 
