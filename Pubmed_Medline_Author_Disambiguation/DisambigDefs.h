@@ -738,8 +738,8 @@ protected:
 		AttribType tempclass;
 		tempclass.attrib_set = temp;
 		const AttribType * result = this->static_add_attrib(tempclass, 2);
-		static_reduce_attrib( dynamic_cast<const AttribType & >(*this), 1);
-		static_reduce_attrib(rhs, 1);
+		this->static_reduce_attrib( dynamic_cast<const AttribType & >(*this), 1);
+		this->static_reduce_attrib(rhs, 1);
 		return result;
 	}
 
