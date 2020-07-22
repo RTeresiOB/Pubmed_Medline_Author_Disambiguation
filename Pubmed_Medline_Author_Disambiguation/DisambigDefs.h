@@ -20,6 +20,10 @@
 #ifndef DISAMBIGLIB_HPP_
 #define DISAMBIGLIB_HPP_
 
+#ifndef DISAMBIGCOMP_HPP_
+#include "DisambigComp.h"
+#endif
+
 #include <iostream>
 #include <list>
 #include <vector>
