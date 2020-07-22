@@ -347,6 +347,22 @@ unsigned int cJournal::compare(const cAttribute & right_hand_side) const {
 	}
 }
 
+unsigned int cLanguage::compare(const cAttribute & rhs) const {
+	if ( ! is_comparator_activated () )
+		throw cException_No_Comparision_Function(static_get_class_name().c_str());
+	try {
+	//(const string &lang1, const string &lang2)
+	unsigned int res = langcmp(* this->get_data().at(0), * rhs.get_data().at(0));
+			if ( res > max_value )
+			res = max_value;
+			return res;
+	} catch{
+		std::cerr << except.what() << std::endl;
+		std::cerr << "Error: " << this->get_class_name() << " is compared to " << rhs.get_class_name() << std::endl;
+		throw;
+	}
+}
+
 
 /*
  * cClass_M2::compare

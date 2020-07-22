@@ -185,6 +185,7 @@ char * extract_initials(char * dest, const char * source) ;
 int nospacecmp(const char* str1, const char* str2);
 int jwcmp(const string & str1, const string& str2);
 int midnamecmp(const string & str1, const string & str2 );
+unsigned int langcmp(const string & lang1, const string & lang2);
 int countrycmp(const string & country1, const string & country2 );
 int streetcmp(const string& inputstreet1, const string& inputstreet2);
 int latloncmp(const string & inputlat1, const string & inputlon1, const string & inputlat2, const string & inputlon2 );

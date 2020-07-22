@@ -324,6 +324,17 @@ int midnamecmp ( const string & s1, const string & s2) {
 	return 3;
 }
 
+unsigned int langcmp(const string &lang1, const string & lang2){
+	// Return 2 if both languages are english
+    if(lang1 == "eng" && lang2 == "eng") return 2;
+    // Return 1 if one of the languages is English
+    else if(lang1 == "eng" || lang2 =="eng") return 1;
+    // Return 3 if it is a non-english match - "und" treated as match for any non-english
+    else if ( (lang1 == lang2) ||
+             (lang1 == "und" || lang2 == "und")) return 3;
+    // Return 0 if both non-english languages that don't match
+    else return 0;
+}
 
 
 int distcmp(const string & inputlat1, const string & inputlon1, const string & inputctry1, const char * inputstreet1,
