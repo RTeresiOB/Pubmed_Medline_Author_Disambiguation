@@ -77,7 +77,7 @@ int Thread::getState()
 
 void Thread::join()
 {
-    if (tid > 0)
+    if (tid)
     {
         pthread_join(tid, NULL);
     }
