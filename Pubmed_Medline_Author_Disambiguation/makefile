@@ -15,7 +15,7 @@ CONCERTINCLUDE=$(ILOGINSTALLDIR)/concert/include
 CPLEXLIB=$(ILOGINSTALLDIR)/cplex/lib/x86-64_osx/static_pic
 CONCERTLIB=$(ILOGINSTALLDIR)/concert/lib/x86-64_osx/static_pic
 
-all:exedisambig txt2sqlite3
+all:exedisambig #txt2sqlite3
 
 exedisambig: Disambigmain.o DisambigDefs.o DisambigRatios.o DisambigEngine.o DisambigFileOper.o strcmp95.o DisambigComp.o DisambigTraining.o Threading.o DisambigCluster.o DisambigRatioSmoothing.o DisambigNewCluster.o DisambigCustomizedDefs.o DisambigPostProcess.o DisambigUtilities.o
 	$(CXX) -o $@ $? $(CPPFLAGS) -L$(CPLEXLIB) -lilocplex -lcplex -L$(CONCERTLIB) -lconcert -lm -lpthread
@@ -68,5 +68,5 @@ DisambigUtilities.o: DisambigUtilities.h DisambigUtilities.cpp
 clean:
 	rm *.o *.gch
 
-txt2sqlite3: txt2sqlite3.h txt2sqlite3.cpp
-	$(CXX) -o $@ $? $(CPPFLAGS) -lsqlite3
+#txt2sqlite3: txt2sqlite3.h txt2sqlite3.cpp
+#	$(CXX) -o $@ $? $(CPPFLAGS) -lsqlite3
