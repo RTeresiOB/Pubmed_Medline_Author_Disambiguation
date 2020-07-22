@@ -755,7 +755,7 @@ public:
 			const AttribType & rhs = dynamic_cast< const AttribType & > (right_hand_side);
 
 			const unsigned int mv = this->get_attrib_max_value();
-			res = num_common_elements (this->attrib_set.begin(), this->attrib_set.end(),
+			res = num_common_elements(this->attrib_set.begin(), this->attrib_set.end(),
 										 rhs.attrib_set.begin(), rhs.attrib_set.end(),
 										 mv);
 
