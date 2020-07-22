@@ -452,7 +452,7 @@ void one_step_prostprocess( const list < cRecord > & all_records, const char * l
 	const string uid_identifier = cUnique_Record_ID::static_get_class_name();
 	create_btree_uid2record_pointer(uid_dict, all_records, uid_identifier);
 	map < const cRecord *, cGroup_Value, cSort_by_attrib > patent_tree((cSort_by_attrib(cPatent::static_get_class_name())));
-	build_patent_tree(  patent_tree , all_records );
+	build_patent_tree( patent_tree , all_records );
 #if 0
 	list < const cRecord *> all_rec_pointers;
 	for ( list<cRecord>::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
