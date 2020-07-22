@@ -304,7 +304,8 @@ public:
     static const unsigned int max_value = 1;
     
     cAffiliation_Exists(const char * source = NULL ) {}
-    unsigned int compare(const cAttribute & rhs) const;        //override to allow customization. // Implemented in cRatioComponent
+	// Initialize compare to create custom comparison function
+    // unsigned int compare(const cAttribute & rhs) const;        //override to allow customization. // Implemented in cRatioComponent
     unsigned int get_attrib_max_value() const {
         if ( ! is_comparator_activated() )
             cAttribute::get_attrib_max_value();
@@ -318,7 +319,7 @@ public:
     static const unsigned int max_value = 3;
     
     cLanguage(const char * source = NULL ) {}
-    unsigned int compare(const cAttribute & rhs) const;        //override to allow customization. - find part of script where custom definitions assigned
+    // unsigned int compare(const cAttribute & rhs) const;        //override to allow customization. - find part of script where custom definitions assigned
     unsigned int get_attrib_max_value() const {
         if ( ! is_comparator_activated() )
             cAttribute::get_attrib_max_value();
