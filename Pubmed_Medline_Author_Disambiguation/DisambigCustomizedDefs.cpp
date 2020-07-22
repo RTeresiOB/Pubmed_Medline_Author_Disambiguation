@@ -389,8 +389,7 @@ unsigned int cCountry::compare(const cAttribute & right_hand_side) const {
 }
 
 
-// PUBMED CHANGE
-// No Assignee in PUBMED. jwcmp throwing an error so commenting out.
+
 /*
  * cAssignee::compare:
  * Comparison of assignee includes two steps:
@@ -402,7 +401,7 @@ unsigned int cCountry::compare(const cAttribute & right_hand_side) const {
  *
  */
 
-/*
+
 unsigned int cAssignee::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
@@ -447,7 +446,7 @@ unsigned int cAssignee::compare(const cAttribute & right_hand_side) const {
 		throw;
 	}
 }
-*/
+
 
 
 /*
