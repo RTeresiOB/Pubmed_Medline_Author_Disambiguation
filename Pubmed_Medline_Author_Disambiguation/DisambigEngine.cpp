@@ -1758,12 +1758,12 @@ std::pair<const cRecord *, double> disambiguate_by_set (
                                                         const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
                                                         const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
                                                         const double prior,
-                                                        const cRatios & ratio,  const double mutual_threshold, const bool country_check = true ) {
+                                                        const cRatios & ratio,  const double mutual_threshold, const bool country_check_set = true ) {
     static const unsigned int firstname_index = cRecord::get_similarity_index_by_name(cFirstname::static_get_class_name());
     static const unsigned int midname_index = cRecord::get_similarity_index_by_name(cMiddlename::static_get_class_name());
     static const unsigned int lastname_index = cRecord::get_similarity_index_by_name(cLastname::static_get_class_name());
 
-	static const bool country_check = true;
+	static const bool country_check = country_check_set;
     
     //prescreening.
     const bool prescreening = true;
