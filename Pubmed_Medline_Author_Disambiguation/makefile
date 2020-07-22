@@ -8,12 +8,12 @@ CPPFLAGS=-O0 -g -Wall -fno-inline -I/usr/local/include -L/usr/local/lib
 CPPFLAGS=-O3 -g -Wall -I/usr/local/include -L/usr/local/lib -std=c++11
 CFLAGS=-O3 -g -Wall -I/usr/local/include -L/usr/local/lib
 OOQPINCLUDEDIR=/usr/local/include/ooqp
-ILOGINSTALLDIR=/Users/RobertTeresi/ILOG/CPLEX_Studio_AcademicResearch122
+ILOGINSTALLDIR=/Users/RobertTeresi/Documents/CPLEX
 
 CPLEXINCLUDE=$(ILOGINSTALLDIR)/cplex/include
 CONCERTINCLUDE=$(ILOGINSTALLDIR)/concert/include
-CPLEXLIB=$(ILOGINSTALLDIR)/cplex/lib/x86_sles10_4.1/static_pic
-CONCERTLIB=$(ILOGINSTALLDIR)/concert/lib/x86_sles10_4.1/static_pic
+CPLEXLIB=$(ILOGINSTALLDIR)/cplex/lib/x86-64_osx/static_pic
+CONCERTLIB=$(ILOGINSTALLDIR)/concert/lib/x86-64_osx/static_pic
 
 all:exedisambig txt2sqlite3
 
