@@ -63,6 +63,10 @@ template <> const string cAttribute_Basic<cAffiliations>::class_name = "Affiliat
 template <> const string cAttribute_Basic<cAffiliations>::attrib_group = "Article";
 ////////////////////////
 
+// Adding class_name and attrib_group for unused cClass
+template <> const string cAttribute_Basic<cClass>::class_name = "Class_Measure";
+template <> const string cAttribute_Basic<cClass>::attrib_group = "Patent";
+
 template <> const string cAttribute_Basic<cClass_M2>::class_name = "Class_Measure2";
 template <> const string cAttribute_Basic<cClass_M2>::attrib_group = "Patent";
 
