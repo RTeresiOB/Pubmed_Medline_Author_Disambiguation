@@ -351,18 +351,33 @@ unsigned int cLanguage::compare(const cAttribute & rhs) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
 	try {
-	//(const string &lang1, const string &lang2)
+							//(const string &lang1, const string &lang2)
 	unsigned int res = langcmp(* this->get_data().at(0), * rhs.get_data().at(0));
 			if ( res > max_value )
 			res = max_value;
 			return res;
-	} catch{
+	} catch( const std::bad_cast & except ){
 		std::cerr << except.what() << std::endl;
 		std::cerr << "Error: " << this->get_class_name() << " is compared to " << rhs.get_class_name() << std::endl;
 		throw;
 	}
 }
 
+unsigned int cAffiliation_Exists::compare(const cAttribute & rhs) const {
+	if ( ! is_comparator_activated () )
+		throw cException_No_Comparision_Function(static_get_class_name().c_str());
+	try {
+		string s1 = * this->get_data().at(0), s2 = * rhs.get_data().at(0);
+
+			unsigned int res = (!s1.empty() && !s2.empty()) ? 1 : 0;
+			if(res > max_value) res = max_value;
+			return res;
+	} catch( const std::bad_cast & except ){
+		std::cerr << except.what() << std::endl;
+		std::cerr << "Error: " << this->get_class_name() << " is compared to " << rhs.get_class_name() << std::endl;
+		throw;
+	}
+}
 
 /*
  * cClass_M2::compare

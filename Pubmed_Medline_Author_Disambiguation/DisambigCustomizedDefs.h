@@ -305,7 +305,7 @@ public:
     
     cAffiliation_Exists(const char * source = NULL ) {}
 	// Initialize compare to create custom comparison function
-    // unsigned int compare(const cAttribute & rhs) const;        //override to allow customization. // Implemented in cRatioComponent
+    unsigned int compare(const cAttribute & rhs) const;        //override to allow customization. // Implemented in cRatioComponent
     unsigned int get_attrib_max_value() const {
         if ( ! is_comparator_activated() )
             cAttribute::get_attrib_max_value();
