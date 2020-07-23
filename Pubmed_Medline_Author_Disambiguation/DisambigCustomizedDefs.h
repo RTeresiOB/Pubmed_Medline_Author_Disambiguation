@@ -41,6 +41,8 @@ class cFirstname : public cAttribute_Single_Mode <cFirstname> {
 private:
   static unsigned int previous_truncation;
   static unsigned int current_truncation;
+  static const string path_to_file;
+  static const cNicknames const * nickname_ptr;
  public:
   static void set_truncation( const unsigned int prev, const unsigned int cur ) { previous_truncation = prev; current_truncation = cur; }
 	//static const unsigned int max_value = Jaro_Wrinkler_Max;

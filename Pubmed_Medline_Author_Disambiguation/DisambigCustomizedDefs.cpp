@@ -108,6 +108,8 @@ template <> const string cAttribute_Basic<cPatent>::class_name = "Patent";
 
 unsigned int cFirstname::previous_truncation = 0;
 unsigned int cFirstname::current_truncation = 0;
+const string cFirstname::path_to_file = "/Users/RobertTeresi/Documents/Github/Pubmed_Medline_Author_Disambiguation-orig/nickname_test.csv";
+const cNicknames const * cFirstname::nickname_ptr = new cNicknames(cFirstname::path_to_file);
 
 /*
  * cFirstname::split_string does 3 things:

@@ -629,13 +629,13 @@ int name_compare( const string & s1, const string & s2, const unsigned int prev,
 
 }
 
-/*
-int namecmp(const string & s1, const string & s2, const map<string,string> &nickname_map) {
+
+int namecmp(const string & s1, const string & s2, cNicknames* nnameptr) {
     
     // If names are exact matches, we return 11
     if(s1==s2){
         return 11;
-    }
+    } else if(nnameptr->is_nickname(s1, s2)) return 6;
 
     // If names are the same except for hyphen (or space, but same middle name thing happens here). Return 10
     const char * p1 = s1.c_str();
@@ -705,6 +705,3 @@ int namecmp(const string & s1, const string & s2, const map<string,string> &nick
     // If we get to the end and none of the above satisfied, return 0
     return 0;
 }
-
-*/
-

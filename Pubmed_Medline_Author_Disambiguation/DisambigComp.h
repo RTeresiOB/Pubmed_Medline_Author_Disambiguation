@@ -165,6 +165,7 @@ class cNicknames{
     }
 
 };
+
 const unsigned int Jaro_Wrinkler_Max = 5;
 
 template <typename Tp>
