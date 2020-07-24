@@ -240,7 +240,7 @@ bool is_in(const T& v, std::initializer_list<T> lst)
     return std::find(std::begin(lst), std::end(lst), v) != std::end(lst);
 }
 
-int namecmp2(const string & s1, const string & s2, cNicknames* nnameptr){
+int torvik_name_compare(const string & s1, const string & s2, cNicknames * nnameptr){
     // Initialize some variables
     size_t count = 0;
     bool is_initials = false;

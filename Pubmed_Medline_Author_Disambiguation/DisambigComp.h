@@ -197,7 +197,7 @@ int asgcmp ( const string & s1, const string &s2) ;
 int asgcmp_to_test(const vector <string> & asg1, const vector <string> & asg2,
 		   const map<string, std::pair<string, unsigned int> > * const asg_table_pointer);
 int name_compare( const string & s1, const string & s2, const unsigned int prev, const unsigned int cur);
-
+int torvik_name_compare(const string & s1, const string & s2, cNicknames * nnameptr);
 
 class cSentence_JWComparator {
 private:
@@ -233,5 +233,13 @@ unsigned int num_common_elements ( const Iter1 & p1begin, const Iter1 & p1e ,
 	}
 	return cnt;
 }
+
+// Helper template function
+template <typename T>
+bool is_in(const T& v, std::initializer_list<T> lst)
+{
+    return std::find(std::begin(lst), std::end(lst), v) != std::end(lst);
+}
+
 
 #endif /* DISAMBIGCOMP_H_ */

@@ -42,11 +42,12 @@ private:
   static unsigned int previous_truncation;
   static unsigned int current_truncation;
   static const string path_to_file;
-  static const cNicknames const * nickname_ptr;
+  static cNicknames * const nickname_ptr;
  public:
   static void set_truncation( const unsigned int prev, const unsigned int cur ) { previous_truncation = prev; current_truncation = cur; }
 	//static const unsigned int max_value = Jaro_Wrinkler_Max;
-	static const unsigned int max_value = 4;
+	//static const unsigned int max_value = 4;
+	static const unsigned int max_value = 12;
 
 	cFirstname(const char * source = NULL) {}
 	bool split_string(const char*);		//override because some class-specific splitting is involved.

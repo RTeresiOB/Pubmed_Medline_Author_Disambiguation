@@ -629,79 +629,138 @@ int name_compare( const string & s1, const string & s2, const unsigned int prev,
 
 }
 
-
-int namecmp(const string & s1, const string & s2, cNicknames* nnameptr) {
-    
-    // If names are exact matches, we return 11
-    if(s1==s2){
-        return 11;
-    } else if(nnameptr->is_nickname(s1, s2)) return 6;
-
-    // If names are the same except for hyphen (or space, but same middle name thing happens here). Return 10
-    const char * p1 = s1.c_str();
-    const char * p2 = s2.c_str();
-    
-    int n_match = 0; // Keep track of how many characters match - not going to count hyphens
-    
-    // We will manually break out of the while loop
-    while(1){
-        
-        // If both letters match up to a hyphen
-        if(*p1 == '-' && *p2 == '-'){
-            // Iterate
-            p1++; p2++;
-            if(*p1 == *p2){ // If first letter after the initials are the same, iterate
-                p1++; p2++; n_match++;
-                if(*p1 == '\0' || *p2 == '\0') return 9; // If one of the strings ends, return 9 (won't both end because strings not the same) jean-francois vs. jean-f
-            }
-            // Enter here if one string ends and the other has a hyphen
-        } else if((*p1 == '-' && *p2 == '\0' ) || (*p2 == '-' && *p1 == '\0' )){
-            // return 9 if one name is full (more than one character, otherwise return 8
-            // Need to make identical if clauses in case it's either string
-            if(*p1 == '-'){
-                // Three possibilities.
-                if(*p1++ != '\0'){
-                    // More than one character after hyphen returns 9
-                    if(*p1++ != '\0'){
-                        return 9;
-                    } else{ // One character after hyphen returns 8
-                        return 8;
-                    }
-                } else{ // In this weird case : jean- vs jean assign 5 (one character distance)
-                    return 5;
-                }
-            }
-            if(*p2 == '-'){
-                if(*p2++ != '\0'){
-                    
-                    if(*p2++ != '\0'){
-                        return 9;
-                    } else{
-                        return 8;
-                    }
-                } else{ // In this weird case : jean- vs jean assign 5 (one character distance)
-                    return 5;
-                }
-            }
-        }
-        if ( *p1 != *p2){
-            break;
-        } else {
-            p1++; p2++; n_match++; // Go ahead in the loop and raise the number of matched characters
-        }
-        if( *p1 == *p2 && *p1 == '\0' && *p2  == '\0' ) return 10; // return 10 if we get to the end of both strings (they will end @ same time) and they still match
-    }
-    
-    if(n_match == 2){
-        return 2; // thomas vs th
-    } else if(n_match > 2){
-        return 3; // thomas vs tho (or more, but less than perfect)
-    }
-    // Not sure how to implement initials matching, how to differentiate between middlename? - returns 2
-    // If one or both names missing, return 1
-    if ( s1.empty() || s2.empty() )
+// Function created from Torvik's 2009 paper, where he updates his methodology
+int torvik_name_compare(const string & s1, const string & s2, cNicknames* nnameptr){
+    // Initialize some variables
+    size_t count = 0;
+    bool is_initials = false;
+    const char * cs1 = s1.c_str(), * cs2 = s2.c_str(); // c-string versions of inputs
+    // First check if either string is empty
+    if(s1.empty() || s2.empty()){
         return 1;
+    } 
     
-    // If we get to the end and none of the above satisfied, return 0
-    return 0;
+    // If they're not empty, but are the same, return max score of 11.
+    else if(s1 == s2){
+        return 11;
+    }
+
+    // If one of them is the same as the other without '-' or ' ', return 10
+    std::string output1, output2;
+    output1.reserve(s1.size()); output2.reserve(s2.size()); // avoids buffer reallocations in the loop
+    for(size_t i = 0; i != s1.size(); ++i){
+        if(s1[i] != ' ' && s1[i] != '-') output1 += s1[i];
+    }
+    for(size_t i = 0; i != s2.size(); ++i){
+        if(s2[i] != ' ' && s2[i] != '-') output2 += s2[i];
+    }
+    if(output1 == output2) return 10;
+
+    // Erase content of strings (so that we can use the same variable again below) 
+    output1.clear(); output2.clear(); // This does not free up reserved memory
+    
+    // Jean-francois vs. Jean-f return 9 / Jean-francois vs. Jean return 7/ Jean-f vs. Jean return 8
+    // Steps:   1) Verify both names match up to delimiter ('-' or ' ') (or that one delimits, and the other ends)
+    //          2) Check lengths of second segments
+
+    // Check for delimiters
+
+    // If they both have it, make a vector of names?
+    if((s1.find(' ') != string::npos || s1.find('-') != string::npos) ||
+       (s2.find(' ') != string::npos || s2.find('-') != string::npos)){
+            vector<string> v1, v2;
+            for(size_t i = 0; i != s1.size(); ++i){
+                if(s1[i] != ' ' && s1[i] != '-') output1 += s1[i];
+                else{
+                    v1.push_back(output1);
+                    output1.clear();
+                }
+            }
+            // It's possible that the last character in a name is '-'
+            if(!output1.empty()){
+                v1.push_back(output1);
+                output1.clear();
+            }
+            for(size_t i = 0; i != s2.size(); ++i){
+                if(s2[i] != ' ' && s2[i] != '-') output2 += s2[i];
+                else{
+                    v2.push_back(output2);
+                    output2.clear();
+                }
+            }
+            if(!output2.empty()){
+                v2.push_back(output2);
+                output2.clear();
+            }
+        // Make sure vectors have same length (Not sure if a case like jean-francois-ross and jean-f should be matches)
+        if(v1.size() == v2.size()){
+            // For each word in the name, make sure they're the same up to the last part
+            for(size_t i = 0; i != v2.size();++i ){
+                // If we get to the end...
+                if(i == (v2.size() - 1)){
+                    // Make sure one of the strings is one character long
+                    if((v1.back().size() == 1 || v2.back().size() == 1) &&
+                        v1.back()[0]==v2.back()[0]) 
+                        return 9;
+                }
+                else if(v1[i] != v2[i]) break;
+            }
+        } 
+        // If one of the strings didn't have a delimiter
+        else if((v1.size() == 1 || v2.size() == 1)){
+            // First check that their first word matches
+            if(v1[0] == v2[0] && v1.size() == 1)
+                // If the last part is long (like francois), return 7, if -f, return 8
+                return (v2.back().size() > 1) ? 7 : 8;
+            else if(v1[0] == v2[0] && v2.size() == 1)
+                return (v1.back().size() > 1) ? 7 : 8;
+            // This is a good place to check for initials
+            string initials;
+            // If one of the names has no '-'/' ' and is the length of number of words in longer name
+            if(v1.size() == 1 && v1[0].size() == v2.size()){
+                for(auto j : v2) initials.push_back(j[0]);
+                if(v1[0] == initials) is_initials = true;
+            }
+            else if(v2.size() == 1 && v2[0].size() == v1.size()){
+                for(auto j : v1) initials.push_back(j[0]);
+                if(v2[0] == initials) is_initials = true;
+            }
+        }
+    }
+    // If neither of them true, do nothing and go on in the function
+    else{ ;}
+
+    // Next is nicknames, that return 6 points
+    if(nnameptr->is_nickname(s1, s2)) return 6;
+
+    // If the names are one character off (after considering higher-scoring options), score of 5
+    // Reuse is_misspell function
+    if(is_in(is_misspell(cs1,cs2),{1,3})) return 5;
+
+    // Next check that a name matches the beginning of the longer name
+    // 4 points if short name at least 3 characters, 3 points otherwise
+    
+    // If names are the same size, it gets a zero at this point
+    string  lstr, sstr;
+    if(s1.size() == s2.size()){
+        return 0;
+    } else if(s1.size() > s2.size()){
+        lstr = s1, sstr = s2;
+    } else{
+        lstr = s2, sstr = s1;
+    }
+
+    // Loop through short string. If every index matches the longer index, then check length and return score
+    for(size_t i = 0; i < sstr.size(); ++i){
+        if(sstr[i] != lstr[i]){
+           count = 0;
+           break; 
+        }
+        ++count;
+    }
+    if(count > 2) return 4;
+    else if(count == 2) return 3;
+    //Check if shorter name is initials of longer name
+    else if(is_initials) return 2;
+    else return 0;
 }

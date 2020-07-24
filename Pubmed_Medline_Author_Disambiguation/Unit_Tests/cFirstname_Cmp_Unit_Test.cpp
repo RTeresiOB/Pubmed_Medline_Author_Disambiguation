@@ -3,10 +3,10 @@
 using namespace std;
 // Create our pointer to the nickname class
 string path_to_file = "/Users/RobertTeresi/Documents/Github/Pubmed_Medline_Author_Disambiguation-orig/nickname_test.csv";
-cNicknames* nnameptr = new cNicknames(path_to_file);
+cNicknames * const nnameptr = new cNicknames(path_to_file);
 
 void compare(string & name1,string & name2,cNicknames* nnameptr){
-    cout << namecmp2(name1,name2,nnameptr) << endl;;
+    cout << torvik_name_compare(name1,name2,nnameptr) << endl;;
 }
 
 int main(){

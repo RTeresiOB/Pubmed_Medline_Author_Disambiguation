@@ -109,7 +109,7 @@ template <> const string cAttribute_Basic<cPatent>::class_name = "Patent";
 unsigned int cFirstname::previous_truncation = 0;
 unsigned int cFirstname::current_truncation = 0;
 const string cFirstname::path_to_file = "/Users/RobertTeresi/Documents/Github/Pubmed_Medline_Author_Disambiguation-orig/nickname_test.csv";
-const cNicknames const * cFirstname::nickname_ptr = new cNicknames(cFirstname::path_to_file);
+cNicknames * const cFirstname::nickname_ptr = new cNicknames(cFirstname::path_to_file);
 
 /*
  * cFirstname::split_string does 3 things:
@@ -145,7 +145,8 @@ unsigned int cFirstname::compare(const cAttribute & right_hand_side) const {
 		return this->get_attrib_max_value();
 
 	unsigned int res = 0;
-	res = name_compare(* this->get_data().at(1), * right_hand_side.get_data().at(1), previous_truncation, current_truncation);
+	//res = name_compare(* this->get_data().at(1), * right_hand_side.get_data().at(1), previous_truncation, current_truncation);
+	res = torvik_name_compare(* this->get_data().at(1), * right_hand_side.get_data().at(1), nickname_ptr);
 	if ( res > this->get_attrib_max_value() )
 		res = this->get_attrib_max_value();
 	return res;
