@@ -330,6 +330,19 @@ public:
     }
     int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
 };
+
+class cEmail : public cAttribute_Single_Mode <cEmail> {
+public:
+    static const unsigned int max_value = 1;
+    
+    cEmail(const char * source = NULL ) {}
+    unsigned int get_attrib_max_value() const {
+        if ( ! is_comparator_activated() )
+            cAttribute::get_attrib_max_value();
+        return max_value;
+    }
+    int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
+};
 /////////////////////////
 
 //=======

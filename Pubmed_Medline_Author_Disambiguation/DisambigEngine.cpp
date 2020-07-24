@@ -2323,7 +2323,10 @@ cAttribute * create_attribute_instance ( const string & id ) { //
 		p = new cJournal;
 	} else if ( id == cLanguage::static_get_class_name() ) {
         p = new cLanguage;
-	} else {
+	} else if (id == cEmail::static_get_class_name() ) {
+		p = new cEmail;
+	}
+	else {
 		p = NULL;
 	}
 
