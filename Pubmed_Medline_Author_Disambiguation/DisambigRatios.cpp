@@ -273,6 +273,8 @@ void cRatioComponent::get_similarity_info() {
 	const cRecord & sample_record = cRecord::get_sample_record();
 	static const string useless_group_label = "None";
 	unsigned int ratios_pos = 0, record_pos = 0;
+
+	// Go through the sample record and populate cRatioComponent class attributes
 	for ( vector<const cAttribute*>::const_iterator p = sample_record.vector_pdata.begin(); p != sample_record.vector_pdata.end(); ++p) {
 		const string & info = (*p)->get_attrib_group();
 		bool comparator_activated = (*p)->is_comparator_activated();
