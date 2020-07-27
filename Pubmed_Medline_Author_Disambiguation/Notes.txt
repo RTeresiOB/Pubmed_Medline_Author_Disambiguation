@@ -21,6 +21,13 @@ Left off at Disambigmain.cpp line 492
     - Matching emails have manually assigned r-values.
     - This should be implemented after initial run-through.
 
+
+ALGORITHM CHANGE:
+Instead of implementing custom similarity profiles in the cases that emails match, I will block records primarily on 
+email matches (then first names) and add email addresses to the match lists for personal attributes.
+
+Need to figure out where to look up same article. (Something like, if articleID is not the same, not a match.)
+
 Template Classes Introduced and defined in DisambigDefs.h/cpp
 
 Template Classes/Base Classes Notes:
