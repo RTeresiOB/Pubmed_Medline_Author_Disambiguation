@@ -408,7 +408,8 @@ public:
  *
  * Public:
  * 	cBlocking_Operation_Multiple_Column_Manipulate (const vector < const cString_Manipulator * > & inputvsm, const vector<string> & columnnames, const vector < unsigned int > & di )
- * 		: This is a constructor of the class. inputvsm = the vector of string manipulator pointers
+ * 		: This is a constructor of the class.
+ * 			 inputvsm = the vector of string manipulator pointers
  * 			columnnames = the vector of strings which reprensents the name of columns that the extractions will be applied on, respectively.
  * 			di = the vector of indice in the cAttribute::data, which will serve as the source string pointers.
  * 			NOTE: di SHOULD NOT BE DESTRUCTED BEFORE THE cBlocking_Operation_Multiple_Column_Manipulate object is discarded.
