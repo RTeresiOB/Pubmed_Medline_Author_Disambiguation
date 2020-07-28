@@ -214,7 +214,7 @@ public:
  * cWorker_For_Disambiguation:
  * This class is a threading subclass to achieve multithreading in Linux systems.
  * It is used in cCluster_Info::disambiguate function.
- * It is unnecessary to understanding the detail. The only thing necessary to know is the constructor.
+ * It is unnecessary to understand the details. The only thing necessary to know is the constructor.
  *
  * Private:
  * 		map < string, cCluster_Info::cRecGroup >::iterator * ppdisambiged: the pointer to an iterator that is a cursor of progress of disambiguation.
