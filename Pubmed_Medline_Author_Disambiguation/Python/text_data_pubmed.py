@@ -9,7 +9,7 @@ import sys
 import pandas as pd
 import pubmed_parser
 import gzip
-import regex as re
+import re
 from pathlib import Path
 
 
