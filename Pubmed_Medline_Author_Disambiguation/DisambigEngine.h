@@ -645,7 +645,7 @@ public:
 
 class cReconfigurator_AsianNames : public cRecord_Reconfigurator {
 private:
-	const unsigned int country_index;
+	unsigned int country_index;
 	const unsigned int firstname_index;
 	const unsigned int middlename_index;
 	const unsigned int lastname_index;
