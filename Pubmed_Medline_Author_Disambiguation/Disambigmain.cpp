@@ -68,7 +68,7 @@ namespace BlockingConfiguration {
 }
 
 
-
+// Edit this function to enable blocking on email first, then name.
 int BlockingConfiguration::config_blocking( const char * filename, const string & module_id ) {
 	std::cout << std::endl;
 	std::cout << "====================== " << module_id << " ===========================" << std::endl;
@@ -490,6 +490,7 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 
 	bool matching_mode = true;
 
+	// Create match  cCluster_Info object - key Disambiguation class (see: DisambigCluster.h)
 	cCluster_Info match ( uid_dict, matching_mode, frequency_adjust_mode, debug_mode);
 	match.set_thresholds( threshold_vec);
 
@@ -498,15 +499,15 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 	char roundstr[buff_size];
 	sprintf(oldmatchfile,"%s", EngineConfiguration::previous_disambiguation_result.c_str() );
 
-
+	// "Determines whether or not post-processing should be applied after each round
+	// of disambiguation. It can be either “true” or “false”, although “true”
+	// is recommended.	
 	bool network_clustering = EngineConfiguration::postprocess_after_each_round;
 
 	if ( debug_mode )
 		network_clustering = false;
 
 	unsigned int round = starting_round;
-
-
 
 	cRatioComponent personalinfo(uid_dict, string("Personal") );
 
@@ -535,6 +536,8 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 	while ( true ) {
 		sprintf(roundstr, "%d", round);
 		module_name = module_prefix + roundstr;
+
+		// Check that BlockingConfig.txt is correctly configured
 		is_blockingconfig_success = BlockingConfiguration::config_blocking(BlockingConfigFile, module_name);
 		if ( is_blockingconfig_success != 0 )
 			break;
@@ -559,13 +562,19 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 		//match.output_list(record_pointers);
 
 		const string training_changable [] = { xset01, tset05 };
+		// Make vector version of training_changable string array
 		const vector<string> training_changable_vec ( training_changable, training_changable + sizeof(training_changable)/sizeof(string));
 
 		switch (round) {
 			case 1:
 			{
+				// In the first round create vector of presort columns (column names)
 				vector <string> presort_columns;
+
+				// String manipulator class that doesn't change the string
 				cString_Remain_Same operator_no_change;
+
+				// What is the order here? Why are we blocking on these columns?
 				presort_columns.push_back(cFirstname::static_get_class_name());
 				presort_columns.push_back(cLastname::static_get_class_name());
 				presort_columns.push_back(cAssignee::static_get_class_name());
@@ -574,10 +583,14 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 				presort_columns.push_back(cCountry::static_get_class_name());
 
 				//presort_columns.push_back(cClass::static_get_class_name());
-
+				// Make vector of string manipulators  (that don't change the string)
 				const vector < const cString_Manipulator *> presort_strman( presort_columns.size(), &operator_no_change);
+				// Vector of 0's
 				const vector < unsigned int > presort_data_indice( presort_columns.size(), 0);
 
+				// Now call cBlocking_Operation_Multiple_Column_Manipulate class
+				// "This is a subclass of cBlocking_Operation, which extracts information from several columns and returns a block specifier string."
+				// (for more look in DisambigEngine.h/cpp)
 				const cBlocking_Operation_Multiple_Column_Manipulate presort_blocker(presort_strman, presort_columns, presort_data_indice);
 				match.preliminary_consolidation(presort_blocker, all_rec_pointers);
 				match.output_current_comparision_info(oldmatchfile);
