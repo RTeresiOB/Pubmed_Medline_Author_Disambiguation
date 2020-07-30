@@ -40,9 +40,12 @@ void create_btree_uid2record_pointer(map<string, const cRecord *> & uid_tree, co
 		const string & label = * pattrib->get_data().at(0);
 		// Look to see if the identifier is in the tree already
 		pm = uid_tree.find( label );
-		if ( pm != uid_tree.end())
+		if ( pm != uid_tree.end()){
+			std::cout << "Here's the error." << std::endl;
+			std::cout << label << std::endl;
 			// If it is, throw an error for duplicate observation
 			throw cException_Duplicate_Attribute_In_Tree(label.c_str());
+		}
 		// Otherwise insert into tree and continue through loop
 		uid_tree.insert(std::pair< string, const cRecord *>(label, &(*p)));
 	}
