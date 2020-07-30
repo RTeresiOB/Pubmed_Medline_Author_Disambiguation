@@ -11,7 +11,15 @@ extern "C" {
 #include "strcmp95.h"
 }
 
+/// HAPPENS BEFORE TRAINING SETS GENERATED!!
+// psource is list of all records
+// blocking column names comes from blockingConfig.txt
+// pmanipulators are a group of classes defined to manipulate cStrings
+// not sure about unique identifier...
 
+// Okay so I will probably have to change the pmanipulator associated with email
+// Then create a mapping of emails to blocking IDs -
+//    inserting the records before the main map algorithm.
 cBlocking::cBlocking (const list<const cRecord *> & psource,
 						const vector<string> & blocking_column_names,
 						const vector<const cString_Manipulator*>& pmanipulators,
@@ -34,7 +42,9 @@ cBlocking::cBlocking (const list<const cRecord *> & psource,
 	std::cout << "Grouping ..." << std::endl;
 	unsigned int count = 0;
 	const unsigned int base = 100000;
+	// Loop through all the records
 	for ( list<const cRecord*>::const_iterator p = psource.begin(); p != psource.end(); ++p ) {
+		// Scope of label is inside loop: declares an empty label every loop iteration
 		string label;
 		for ( unsigned int i = 0; i < num_block_columns; ++i ) {
 			const vector < const string * > & source_data = (*p)->get_data_by_index(blocking_indice.at(i));
@@ -47,15 +57,25 @@ cBlocking::cBlocking (const list<const cRecord *> & psource,
 			//}
 		}
 
+		// returns iterator for first entry that is not considered to go before "label".
+		// Returns matching iterator, or first iterator after elements "before" it.
 		b_iter = blocking_data.lower_bound(label);
+		// bmap_compare returns true if label is before b_iter->first in the strict weak ordering it defines, and false otherwise.
+		// We enter if-statement if label in blocking data
+		// .end() means that b_iter is greater than all existing entries
+		// !bmap_compare means that b_iter->first is after our label
 		if ( b_iter != blocking_data.end() && ! bmap_compare(label, b_iter->first) ) {
 			//b_iter->second.insert(*p);
 			b_iter->second.push_back(*p);
 		}
 		else {
+			// Otherwise we make a new entry into our map (new block) - creating a new list of  *cRecords
 			cGroup_Value tempset;
 			//tempset.insert( *p );
+			// Push the record we are on onto the back of the list
 			tempset.push_back(*p);
+			// b_iter in insert gives hint at location of new element
+			// This method of insertion returns iterator of newly inserted map entry
 			b_iter = blocking_data.insert(b_iter, std::pair< string, cGroup_Value >(label, tempset));
 		}
 
