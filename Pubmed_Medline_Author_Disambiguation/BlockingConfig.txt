@@ -7,34 +7,34 @@
 Firstname: 1 : 0,0 , true
 Middlename: 1 : 0 , 0 , false
 Lastname: 0: 0, 0, true
-ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname, Longitude
+ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname
 
 [ Round 2 ]
 Firstname: 1 : 0 , 0 , true
 Middlename: 1 : 0 , 0 , true
 Lastname: 0: 0, 0, true
-ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname, Coauthor, Class, Assignee
+ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname
 
 [ Round 3 ]
 Firstname: 1 : 0 , 5 , true
 Middlename: 1 : 0 , 1 , true
 Lastname: 0: 0 , 8 , true
-ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname, Coauthor, Class, Assignee
+ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname
 
 [ Round 4 ]
 Firstname: 1 : 0 , 3 , true
 Middlename: 1 : 0 , 0 , false
 Lastname: 0 : 0, 5, true
-ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname, Coauthor, Class, Assignee
+ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname
 
 [ Round 5 ]
 Firstname: 1 : 0, 1, true
 Middlename: 1 : 0 , 0 , false
 Lastname: 0: 0, 5, true
-ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname, Coauthor, Class, Assignee
+ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname
 
 [ Round 6 ]
 Firstname: 1: 0, 1, true
 Middlename: 1 : 0 , 0 , false
 Lastname: 0: 0, 3, true
-ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname, Coauthor, Class, Assignee
+ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname
