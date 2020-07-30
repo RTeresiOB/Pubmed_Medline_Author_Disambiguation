@@ -594,17 +594,24 @@ string cBlocking_Operation_By_Coauthors::extract_blocking_info(const cRecord * p
  * Aim: constructor of cReconfigurator_AsianNames.
  */
 
-//// PUBMED CHANGE /////
-
-// TO DO: Script Identifies East Asian by a country variable - We will probably need to change this to language? (Check Torvik)
-
-cReconfigurator_AsianNames::cReconfigurator_AsianNames(): country_index(cRecord::get_index_by_name(cCountry::static_get_class_name())),
+// NEEDS TO HAVE ANOTHER CONSTRUCTOR THAT USES LANGUAGE INSTEAD OF COUNTRY
+cReconfigurator_AsianNames::cReconfigurator_AsianNames():
 								firstname_index(cRecord::get_index_by_name(cFirstname::static_get_class_name())),
 								middlename_index(cRecord::get_index_by_name(cMiddlename::static_get_class_name())),
 								lastname_index(cRecord::get_index_by_name(cLastname::static_get_class_name())){
-	east_asian.push_back(string("KR"));
-	east_asian.push_back(string("CN"));
-	east_asian.push_back(string("TW"));
+	try{
+		country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
+		east_asian.push_back(string("KR"));
+		east_asian.push_back(string("CN"));
+		east_asian.push_back(string("TW"));
+	} catch(const cException_ColumnName_Not_Found & error){
+		std::cout << "No Country Found looking for Language." << std::endl;
+		// In this case we correct when authors work in Korean or Chinese language
+		// Not sure if this correction is truly even necessary.
+		country_index = cRecord::get_index_by_name(cLanguage::static_get_class_name());
+		east_asian.push_back(string("kor"));
+		east_asian.push_back(string("chi"));
+	}
 }
 
 /*
