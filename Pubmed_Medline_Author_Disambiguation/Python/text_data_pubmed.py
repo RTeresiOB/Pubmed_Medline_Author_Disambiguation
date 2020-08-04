@@ -1,18 +1,17 @@
 # Import libraries
-import numpy as np
-from datetime import datetime
 import os
-import shutil # Copy files to another directory
-import zipfile
-import xml.sax
-import multiprocessing
 import sys
-import pandas as pd
-from pubmed_parser import medline_parser
-import gzip
 import re
+import xml.sax
 from pathlib import Path
+import shutil # Copy files to another directory
 from multiprocessing import Pool
+import numpy as np
+import pandas as pd
+from datetime import datetime
+import zipfile
+import gzip
+from pubmed_parser import medline_parser
 
 # Assign Global Variables
 # Set data directories
