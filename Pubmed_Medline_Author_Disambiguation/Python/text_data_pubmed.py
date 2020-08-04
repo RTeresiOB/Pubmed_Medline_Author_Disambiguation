@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+'''
+The preprocessing script for Pubmed/Medline Disambiguation.
+
+@author: RobertKTeresi
+'''
+
 # Import libraries
 import os
 import sys
@@ -13,19 +22,61 @@ import zipfile
 import gzip
 from pubmed_parser import medline_parser
 
-# Assign Global Variables
-# Set data directories
-# Text data dir is where the script finds the source xml file from the medline website
-text_data_dir = "/Volumes/LaCie/PubmedData_Update_2019/ftp.ncbi.nlm.nih.gov/pubmed/baseline/"
-# Res dir is where the compressed, clean csv equivalents of each xml file is stored 
+'''
+Assign Global Variables:
+    
+    working_dir: Optional variable to help  avoid redundancy with typing other
+                    paths.
+    
+    nprocs: Number of processors you would like to use. Multiprocessing is
+                utilized to clean thousands of (~15.Mb) datasets in parallel
+                and then to append them all together.
+    Data Directories:
+        
+        text_data_dir: Where the script finds the source xml file from
+                        the medline website.
+        res_dir: Where the compressed, clean csv equivalents of each xml
+                    file is stored.
+        combined_dir: Where the full, cleaned dataset is stored.
+    
+    Stoplist Paths:
+        
+        Paths to stoplists to take out uninformative data from title,
+        affiliation, and MeSH fields. Script assumes the contents of the
+        stopword files are ',' separated lists of the stopwords.
+        
+        If you do not want to remove
+        stopwords, you can change the global variable stop_remove
+        to False.
+        
+        title_stop_path: Path to .txt file with title stopwords.
+        affil_stop_path: Path to .txt file with affiliation stopwords.
+        mesh_stop_path:  Path to .txt file with MeSH stopwords.
+        
+    stop_remove: True/False boolean value that will tell the script whether
+                    or not to remove stopwords from title, affiliation, and
+                    MeSH fields.
+        
+'''
+
+working_directory = ("/Users/RobertTeresi/Documents/GitHub/"
+                    "Pubmed_Medline_Author_Disambiguation-orig/"
+                    "Pubmed_Medline_Author_Disambiguation")
+
+nprocs = 8
+
+text_data_dir = ("/Volumes/LaCie/PubmedData_Update_2019/ftp.ncbi.nlm.nih.gov/"
+                 "pubmed/baseline/")
 res_dir = "/Volumes/LaCie/PubmedData_Update_2019/Clean_Csvs/"
-# Combined dir is where 
 combined_dir = "/Volumes/LaCie/PubmedData_Update_2019/Full_Pubmed/"
 
 # THESE PATHS MUST BE ASSIGNED
-title_stop_path = "/Users/RobertTeresi/Documents/pubmed_small_stopwords_list.txt"
-affil_stop_path = "/Users/RobertTeresi/Documents/pubmed_affiliation_stopwords.txt"
-mesh_stop_path =  "/Users/RobertTeresi/Documents/pubmed_mesh_stopwords.txt"
+title_stop_path = (working_directory +
+                   "Stopword_lists/pubmed_small_stopwords_list.txt")
+affil_stop_path = (working_directory +
+                   "Stopword_lists/pubmed_affiliation_stopwords.txt")
+mesh_stop_path =  (working_directory +
+                   "Stopword_lists/pubmed_mesh_stopwords.txt")
 
 
 def download_pubmed_data():
@@ -36,7 +87,8 @@ def download_pubmed_data():
 
 def process_data(filepath, filename, respath, rm_stopwords = True,
                  stop_paths = None):
-    """Take zipped xml from medline and transform it into a clean, gzipped csv.
+    """
+    Take zipped xml from medline and transform it into a clean, gzipped csv.
     
     rm_stopwords set true to remove appropriate stopwords from title,
     affiliation, and mesh fields.
@@ -50,7 +102,8 @@ def process_data(filepath, filename, respath, rm_stopwords = True,
     
         # If we don't supply a stopword list, but don't have remove stopwords set to False, we raise an error
         if stopword_list is None and rm_stopwords:
-            raise Exception('Please Supply a Stopword List or set rm_stopwords to False')
+            raise Exception('Please Supply a Stopword List or set rm_stopwords'
+                            'to False')
             
         # Mesh listings need a slightly different treatment
         if mesh: 
@@ -77,7 +130,8 @@ def process_data(filepath, filename, respath, rm_stopwords = True,
             # Remove stopwords if the option is set to true
             if rm_stopwords:  
                     
-                string = re.sub(r'\b(' + r'| '.join(stopword_list) + r')\b\s*', ' ', string)
+                string = re.sub(r'\b(' + r'| '.join(stopword_list) + r')\b\s*',
+                                ' ', string)
                 
             # Trim whitespaces (induced by cleaning or otherwise)
             string = string.strip()                 # From beginning and end
@@ -85,15 +139,16 @@ def process_data(filepath, filename, respath, rm_stopwords = True,
             return(string)
         
     def extract_email_from_affiliations(affiliation):
-        """Extract an author's email address from their list of affiliations."""
+        """Extract an author's email from their list of affiliations."""
         try:
-            return(re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
-                              affiliation)[0])
+            emailregex = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
+            return(re.findall(emailregex, affiliation)[0])
         except:
             return('')
         
     def read_stoplist(stoplistpath, sep = ", "):
-        """Parse our list of stopwords.
+        """
+        Parse our list of stopwords.
         
         stoplistpath = a path to a .txt file with stopwords
         sep = Separator of words in list (separated by ", " by default)
