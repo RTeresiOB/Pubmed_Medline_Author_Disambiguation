@@ -72,11 +72,11 @@ combined_dir = "/Volumes/LaCie/PubmedData_Update_2019/Full_Pubmed/"
 
 # THESE PATHS MUST BE ASSIGNED
 title_stop_path = (working_directory +
-                   "Stopword_lists/pubmed_small_stopwords_list.txt")
+                   "/Stopword_lists/pubmed_small_stopwords_list.txt")
 affil_stop_path = (working_directory +
-                   "Stopword_lists/pubmed_affiliation_stopwords.txt")
+                   "/Stopword_lists/pubmed_affiliation_stopwords.txt")
 mesh_stop_path =  (working_directory +
-                   "Stopword_lists/pubmed_mesh_stopwords.txt")
+                   "/Stopword_lists/pubmed_mesh_stopwords.txt")
 
 
 def download_pubmed_data():
@@ -107,10 +107,11 @@ def process_data(filepath, filename, respath, rm_stopwords = True,
             
         # Mesh listings need a slightly different treatment
         if mesh: 
-            # Remove MeSH Codes
-            string = [ re.sub(r'([ ]?d\d{6}\:','',x) for x in string]
+            # Remove numerical MeSH Codes
+            string = [ re.sub(r'([ ]?D\d{6}\:)','',x) for x in string]
+            string = [x.lower() for x in string]
             if rm_stopwords:
-                #stopword_list = [stops + '/' for stops in stopword_list] # This makes it easier to  get rid of extra semi-colons
+                
                 # Remove stop words
                 string = [x for x in string if x not in stopword_list]
 
@@ -122,7 +123,9 @@ def process_data(filepath, filename, respath, rm_stopwords = True,
             # Now I only want to keep the unique ID
             #string = re.sub(r'[ ]?(d\d{6})(\:[a-z\-\'\.\, ]+)', r'\1', string)
             return(string)
-        else:       
+        else:  
+            if type(string) is list:
+                string = string = ('/'.join(string)).lower()
             # First, convert the string to lower
             string = string.lower()
             string = re.sub(r'\W+|\b[a-z]\b', ' ', string)
@@ -130,8 +133,8 @@ def process_data(filepath, filename, respath, rm_stopwords = True,
             # Remove stopwords if the option is set to true
             if rm_stopwords:  
                     
-                string = re.sub(r'\b(' + r'| '.join(stopword_list) + r')\b\s*',
-                                ' ', string)
+                string = re.sub(r'\b(' + r'| '.join(stopword_list) +
+                                r')\b\s*', ' ', string)
                 
             # Trim whitespaces (induced by cleaning or otherwise)
             string = string.strip()                 # From beginning and end
@@ -170,35 +173,39 @@ def process_data(filepath, filename, respath, rm_stopwords = True,
                   'delete','pmc','other_id','medline_ta',
                   'nlm_unique_id','issn_linking','country'],
                  axis=1)
-    
-    # Replace missing values (mesh, affiliation, or title) with ''
-    nacols = ['mesh_terms','affiliations','title']
-    df[nacols] = df[nacols].fillna('')
-    
+
     # Sometimes authors and affiliations not read in as list
     if type(df.loc[2,'authors']) is not list:
         df['authors'] = df['authors'].apply(lambda x:x.split(";"))
         df['affiliations'] = df['affiliations'].apply(lambda x:x.split(";"))
         
-    # Explode Name and Affiliation cols. Key cols now author-article, not article.
-    df = df.apply(pd.Series.explode)
+    # Explode Name and Affiliation cols.
+    # Key cols now author-article, not article.
+    df = df.explode(column="authors")
     
     ## Extract emails
     df['email'] = [extract_email_from_affiliations(affiliation) 
                        for affiliation in df['affiliations']]
+    
+    # Replace missing values (mesh, affiliation, or title) with ''
+    nacols = ['mesh_terms','affiliations','title', 'email']
+    df[nacols] = df[nacols].fillna('')
     
     # Clean strings
     # Take out stopwords, non-alphanumeric chars, and single-character words
     if rm_stopwords:
         if stop_paths is None:
             df['title'] =  [clean_string(title,read_stoplist(title_stop_path))
+                                if title != '' else ''
                                 for title in df['title']]
             df['affiliations'] = [clean_string(affiliation,
                                                read_stoplist(affil_stop_path))
+                                      if affiliation != '' else ''
                                       for affiliation in df['affiliations']]
             df['mesh_terms'] =  [clean_string(mesh_term,
                                               read_stoplist(mesh_stop_path),
                                               mesh = True)
+                                     if mesh_term != '' else ''
                                      for mesh_term in df['mesh_terms']]
         elif len(stop_paths) == 3:
             try:
@@ -221,9 +228,9 @@ def process_data(filepath, filename, respath, rm_stopwords = True,
                                    for affiliation in df['affiliations']]
         df['mesh_terms'] =  [clean_string(mesh_term,rm_stopwords = False) 
                                  for mesh_term in df['mesh_terms']]
-        
+    
     # Save to a compressed csv in the results directory
-    df.to_csv(respath, compression = "gzip", sep=",")
+    df.to_csv(respath, compression = "gzip", sep=",", index = False)
     end = datetime.now() - begin
     print(filename + " - done - " + str(np.round(end.seconds / 60)) + "min")
     
@@ -248,7 +255,11 @@ def start(text_data_dir, res_dir, nprocs=8):
                 if not os.path.exists(respath):
                     pass
                 else:
-                    p.apply_async(process_data, args = (filepath,filename,respath))
+                    p.apply_async(process_data, args = (filepath,filename,
+                                                        respath, True,
+                                                        [title_stop_path,
+                                                         affil_stop_path,
+                                                         mesh_stop_path]))
     p.close()
     p.join()
 
@@ -262,7 +273,8 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files = True):
             errmsg = ("append_files function expected 2 files to append,"
                         "instead received" + len(filetuple) + ".")
             raise Exception(errmsg)
-        file1 = pd.read_csv(filetuple[1], compression = "gzip", sep = ",")
+        file1 = pd.read_csv(filetuple[1], compression = "gzip", sep = ",",
+                            keep_default_na=False)
         
         # Append to other file
         file1.to_csv(filetuple[0], compression= "gzip", mode = "a", sep = ",")
