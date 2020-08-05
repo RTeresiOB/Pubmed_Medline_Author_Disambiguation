@@ -9,9 +9,11 @@ The preprocessing script for Pubmed/Medline Disambiguation.
 
 # Import libraries
 import os
+import io
 import sys
 import re
 import xml.sax
+from csv import reader, writer
 from pathlib import Path
 import shutil # Copy files to another directory
 from multiprocessing import Pool
@@ -213,7 +215,7 @@ def process_data(filepath, filename, respath, rm_stopwords = True,
                           in zip(df['author'],df['coauthors'])]
     
     
-    ## Extract emails
+    # Extract emails
     df['email'] = [extract_email_from_affiliations(affiliation) 
                        for affiliation in df['affiliations']]
     
@@ -314,6 +316,33 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files = True):
     def mute():
         """Mute the output of Pool."""
         sys.stdout = open(os.devnull, 'w') 
+    
+    def add_column_in_csv(input_file, output_file, transform_row):
+        """
+        Append a column in existing csv using csv.reader / csv.writer classes.
+        
+        Used to add row numbers (Unique_Record_ID) to full data file without
+         reading entire dataset into memory.
+         
+        Function taken from:
+         'https://thispointer.com/python-add-a-column-to-an-existing-csv-file/'
+        
+        Adapted to work with .gzip files using the answers found on:
+         'https://stackoverflow.com/questions/9252812
+        """
+        # Open the input_file in read mode and output_file in write mode
+        with gzip.open(input_file, 'rt') as read_obj, \
+             gzip.open(output_file, 'wt') as write_obj:
+            # Create a csv.reader object from the input file object
+            csv_reader = reader(read_obj)
+            # Create a csv.writer object from the output file object
+            csv_writer = writer(write_obj)
+            # Read each row of the input csv file as list
+            for row in csv_reader:
+                # Pass the list / row in the transform function to add column text for this row
+                transform_row(row, csv_reader.line_num)
+                # Write the updated row / list to the output file
+                csv_writer.writerow(row)
         
     files = []
     procpool = Pool(nprocs, initializer=mute)
@@ -349,7 +378,17 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files = True):
                 filetuples.append((file,next(iterfiles)))
 
     # Change file name of combined dataset to full_pubmed.csv.gz
-    os.rename(files[0],(os.path.dirname(files[0]) + "full_pubmed.csv.gz"))
+    full_data_dir =  os.path.dirname(files[0])
+    os.rename(files[0],full_data_dir + "/full_pubmed_no_id.csv.gz")
+    
+    add_column_in_csv(full_data_dir + "/full_pubmed_no_id.csv.gz",
+                      full_data_dir + "/full_pubmed.csv.gz",
+                  lambda row, line_num: row.append("Unique_Record_ID")
+                  if line_num == 1 
+                  else row.append(line_num - 2))  # Start with 0
+    
+    # Now get rid of data without the id
+    os.remove(full_data_dir + "/full_pubmed_no_id.csv.gz")
 
 
 def main(download_data = False, combine_data =  False, nprocs=8):
