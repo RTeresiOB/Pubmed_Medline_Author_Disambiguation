@@ -380,7 +380,8 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files = True):
     # Change file name of combined dataset to full_pubmed.csv.gz
     full_data_dir =  os.path.dirname(files[0])
     os.rename(files[0],full_data_dir + "/full_pubmed_no_id.csv.gz")
-    
+
+    # Add Unique_Record_ID Column to full data
     add_column_in_csv(full_data_dir + "/full_pubmed_no_id.csv.gz",
                       full_data_dir + "/full_pubmed.csv.gz",
                   lambda row, line_num: row.append("Unique_Record_ID")
