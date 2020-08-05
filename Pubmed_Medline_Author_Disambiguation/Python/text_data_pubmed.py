@@ -31,6 +31,7 @@ Assign Global Variables:
     nprocs: Number of processors you would like to use. Multiprocessing is
                 utilized to clean thousands of (~15.Mb) datasets in parallel
                 and then to append them all together.
+                
     Data Directories:
         
         text_data_dir: Where the script finds the source xml file from
@@ -160,6 +161,12 @@ def process_data(filepath, filename, respath, rm_stopwords = True,
             data = file.read().split(sep)
         return(data)
     
+    def copy_remove(author, coauthors):
+        """Remove author from list of coauthors."""
+        lcopy = list(coauthors)
+        lcopy.remove(author)
+        return(lcopy)
+    
     print(filename + " - start")
     begin = datetime.now()
     print(filename + " - load data")
@@ -178,10 +185,33 @@ def process_data(filepath, filename, respath, rm_stopwords = True,
     if type(df.loc[2,'authors']) is not list:
         df['authors'] = df['authors'].apply(lambda x:x.split(";"))
         df['affiliations'] = df['affiliations'].apply(lambda x:x.split(";"))
-        
+    
+    # Now create coauthors column (Same as authors column for now)
+    df['coauthors'] = df['authors']
+
     # Explode Name and Affiliation cols.
     # Key cols now author-article, not article.
     df = df.explode(column="authors")
+    
+    # Rename authors to author (the author in this observation)
+    df.rename(columns={'authors': 'author'}, inplace=True)
+    
+    # Now remove author from coauthor list.
+    # Careful not to remove other authors with same name. Use list.remove()
+    #
+    # Explode apparently makes variables in slots that used to be in the same
+    # row references of the same object. 
+    # (i.e. the list coauthors for every row in an article are references to 
+    # the same variable)
+    #
+    # Therefore we have to make a copy of each list and then remove the author
+    # from the row of coauthors.
+    #
+    # Finally, convert the list to a '/' joined string
+    df['coauthors'] = ['/'.join(copy_remove(author, coauthors))
+                          for author, coauthors 
+                          in zip(df['author'],df['coauthors'])]
+    
     
     ## Extract emails
     df['email'] = [extract_email_from_affiliations(affiliation) 
@@ -209,7 +239,8 @@ def process_data(filepath, filename, respath, rm_stopwords = True,
                                      for mesh_term in df['mesh_terms']]
         elif len(stop_paths) == 3:
             try:
-                df['title'] =  [clean_string(title,read_stoplist(stop_paths[0]))
+                df['title'] =  [clean_string(title,
+                                             read_stoplist(stop_paths[0]))
                                 for title in df['title']]
                 df['affiliations'] = [clean_string(affiliation,
                                                read_stoplist(stop_paths[1]))
