@@ -77,6 +77,8 @@ class cBlocking_Operation_By_Coauthors;
  */
 class cRecord {
 	friend bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns);
+	friend bool fetch_records_from_txt(list <cRecord> & source, bool adjust_for_fname_freq, const char * txt_file,
+										const vector<string> &requested_columns);
 	friend void clear_records(const list <cRecord> & source);
 	friend class cSort_by_attrib;
 	friend class cRatioComponent;

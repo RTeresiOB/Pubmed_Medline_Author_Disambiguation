@@ -1656,9 +1656,31 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 				return std::pair<const cRecord *, double> (NULL, 0);
 		}
 
-
+		// Vector is in order of attribute indices
 		vector < unsigned int > screen_sp = key1->record_compare(*key2);
-		const double screen_r = fetch_ratio(screen_sp, ratio.get_ratios_map());
+
+		/// LEFT OFF HERE 
+		// Need to change screen_r (and normal r's later) to adjust for number of people with name (or size of block?)
+		// This change only occurs if the first name gets a perfect match (11). 
+
+		double screen_r = fetch_ratio(screen_sp, ratio.get_ratios_map());
+
+		// Check if first name was perfect match
+
+		// First is the attribute activated?
+		if(key1->get_attrib_pointer_by_index(firstname_index)->is_comparator_activated())
+			if(screen_sp.at(firstname_index) == cFirstname::max_value){
+				// Get data at first name index, and look for matching entry in map
+				auto it = fname_freqs.find(*(key1->get_data_by_index(firstname_index).at(1)));
+				if(it == fname_freqs.end()){
+					std::cout << "Could not find first name in map.\n This"
+								"Probably means there is a problem in correcting for"
+								"first name frequencies." << std::endl;
+				} else{
+					screen_r /= it->second;
+				}
+			}
+				
 		const double screen_p = 1.0 / ( 1.0 + ( 1.0 - prior )/ prior / screen_r );
 		if ( screen_p < 0.3 || screen_sp.at(firstname_index) == 0 || screen_sp.at(midname_index) == 0 || screen_sp.at(lastname_index) == 0 )
 			return std::pair<const cRecord *, double> (NULL, 0);
@@ -2060,7 +2082,310 @@ void copyfile(const char * target, const char * source) {
  *
  */
 
-bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns ){
+bool fetch_records_from_txt(list <cRecord> & source, bool adjust_for_fname_freq, const char * txt_file, const vector<string> &requested_columns){
+	if(!adjust_for_fname_freq)
+		return fetch_records_from_txt(source, txt_file, requested_columns);
+	std::ifstream::sync_with_stdio(false);
+	const char * delim = ",";	// this deliminator should never occur in the data.
+	const unsigned int delim_size = strlen(delim);
+	std::ifstream infile(txt_file);
+	if ( ! infile.good()) {
+		throw cException_File_Not_Found(txt_file);
+	}
+	string filedata;
+	//getline(infile, filedata);
+	//if ( filedata != raw_txt_authenticator )
+	//	throw cException_File_Not_Found("Specified file is not a valid one.");
+
+	vector <string> total_col_names;
+
+	getline(infile, filedata); // Operating on  only the first line for now
+	register size_t pos, prev_pos;
+	pos = prev_pos = 0;
+
+	// Gets all possible column names
+	while (  pos != string::npos){ // Will return true until
+		pos = filedata.find(delim, prev_pos); // This function returns -1 - ie when there is no next delimitor
+		string columnname;
+		if ( pos != string::npos )
+			columnname = filedata.substr( prev_pos, pos - prev_pos); // Colname is space between ,'s
+		else
+			columnname = filedata.substr( prev_pos ); //
+		total_col_names.push_back(columnname);
+		prev_pos = pos + delim_size;
+	}
+	// Following line takes *vector* of requested columns and registers them
+	cAttribute::register_class_names(requested_columns);
+	const unsigned int num_cols = requested_columns.size();
+	vector < unsigned int > requested_column_indice;
+
+	// Looks for requested columns amongst column names and gets their indices to read file
+	for ( unsigned int i = 0; i < num_cols; ++i ) {
+		unsigned int j;
+		for (  j = 0; j < total_col_names.size(); ++j ) {
+			if ( requested_columns.at(i) == total_col_names.at(j) ) {
+				requested_column_indice.push_back(j);
+				break;
+			}
+		}
+		if ( j == total_col_names.size() ) {
+			std::cerr << "Critical Error in reading " << txt_file << std::endl
+						<<"Column names not available in the first line. Please Check the correctness." << std::endl;
+			throw cException_ColumnName_Not_Found(requested_columns.at(i).c_str());
+		}
+	}
+
+	// Modify cRecord class to include only columns requested
+	cRecord::column_names = requested_columns;
+	cAttribute ** pointer_array = new cAttribute *[num_cols]; // Declares an array, num_cols long, of pointers  to cAttribute
+
+	pos = prev_pos = 0;
+	unsigned int position_in_ratios = 0; // What is the position in ratios?
+	for ( unsigned int i = 0; i < num_cols; ++i ) {
+		const int pos_in_query = cAttribute::position_in_registry(cRecord::column_names[i]);
+
+		if ( pos_in_query == -1 ) {
+			for ( unsigned int j = 0; j < i; ++j )
+				delete pointer_array[j];
+			delete [] pointer_array;
+			throw cException_ColumnName_Not_Found(cRecord::column_names[i].c_str());
+		}
+		else
+		    // Function documented directly beneath this fetch function. 
+			// Fills in pointer_array with pointers to concrete attribute classes (cFirstname, cJournal, etc.)
+			pointer_array[i] = create_attribute_instance ( cRecord::column_names[i].c_str() );
+// Think this is to get desired order reading columns regardless of input
+// Need to figure out why later in code so I can change it
+#if 0
+		if ( cRecord::column_names[i] == cLongitude::class_name ) {
+			cLatitude::interactive_column_indice_in_query.push_back(i);
+		}
+		else if ( cRecord::column_names[i] == cStreet::class_name ) {
+			cLatitude::interactive_column_indice_in_query.push_back(i);
+		}
+		else if ( cRecord::column_names[i] == cCountry::class_name ) {
+			cLatitude::interactive_column_indice_in_query.push_back(i);
+		}
+		else if ( cRecord::column_names[i] == cAsgNum::class_name ) {
+			cAssignee::interactive_column_indice_in_query.push_back(i);
+		}
+#endif
+
+        // As far as I can tell, no class has attrib_group == "None" 
+		if ( pointer_array[i]->get_attrib_group() != string("None") )
+			++position_in_ratios;
+	}
+
+	// always do this for all the attribute classes
+	for ( unsigned int i = 0; i < num_cols; ++i )
+		pointer_array[i]->check_interactive_consistency(cRecord::column_names);
+
+    // Prints class names (e.g. Firstname)
+	std::cout << "Involved attributes are: ";
+	for ( unsigned int i = 0; i < num_cols; ++i )
+		std::cout << pointer_array[i]->get_class_name() << ", ";
+	std::cout << std::endl;
+
+    // Prints actual names of classes (e.g. cFirstname)
+	std::cout << "Polymorphic data types are: ";
+	for ( unsigned int i = 0; i < num_cols; ++i )
+		std::cout << typeid(*pointer_array[i]).name()<< ", ";
+	std::cout << std::endl;
+
+	vector <string> string_cache(num_cols);
+	const unsigned int string_cache_size = 2048;
+	for ( unsigned int i = 0; i < num_cols; ++i ) {
+		string_cache.at(i).reserve(string_cache_size);
+	}
+    // Here is where the source file reading starts
+	unsigned long size = 0;
+	std::cout << "Reading " << txt_file << " ......"<< std::endl;
+
+    // base used below to space out printing of read-progress to console
+	const unsigned int base  =  100000;
+	const cAttribute * pAttrib;
+	vector <const cAttribute *> temp_vec_attrib;
+	vector <const cAttribute *> Latitude_interactive_attribute_pointers;
+
+	// While loop that reads input file one line at a time and reads it into filedata.
+	//
+	// getline ends lines at \n (which is what I assume most all .csv's entered will do,
+	//  but it's worth noting).
+	while (getline(infile, filedata) ) {
+		temp_vec_attrib.clear();
+
+
+		for ( unsigned int i = 0; i < num_cols ; ++i ) { // Going through number of cols
+			unsigned int column_location = 0;
+			pos = prev_pos = 0;
+
+			// There can be more columns than we are using for disambig, so we skip over
+			// columns we aren't using with this loop.
+			while ( column_location++ != requested_column_indice.at(i) ) {
+				pos = filedata.find(delim, prev_pos);
+				prev_pos = pos + delim_size;
+			}
+			pos = filedata.find(delim, prev_pos);
+
+			// Previous function returns string::npos if delimiter not found after prev_pos
+			if ( pos == string::npos ) {
+				// If previous position wasn't end of line, we take data after last delimiter
+				if ( prev_pos != filedata.size() )
+					string_cache[i] = filedata.substr(prev_pos);
+				// Otherwise, if our previous position was the size of the line then the data is empty
+				else
+					string_cache[i] = "";
+			}
+			else {
+				// Data is between previous delimiter and subsequent delimitor
+				string_cache[i] = filedata.substr(prev_pos, pos - prev_pos);
+			}
+
+            // Set the data of the class entry in our pointer array to the data read
+			pointer_array[i]->reset_data(string_cache[i].c_str());
+			pAttrib = pointer_array[i]->clone();	//HERE CREATED NEW CLASS INSTANCES.
+
+			// Add to mapping of frequency of first names if attribute is Firstname and is not a single initial
+			if((pointer_array[i]->get_class_name() == cFirstname::static_get_class_name())
+			 	&& ((pos - prev_pos) > 1)){
+				if(fname_freqs.find(string_cache[i]) != fname_freqs.end()){
+					fname_freqs.insert( std::pair<std::string, int>(string_cache[i], 1) );
+				} else{
+					map<std::string, int>::iterator it = fname_freqs.find(string_cache[i]);
+					it->second++;
+				}
+			}
+			// Add classes to a temp_vec that will hold line's data (reset at top of while)
+			temp_vec_attrib.push_back(pAttrib);
+		}
+        // Initialize a record by attaching our class attributes
+		cRecord temprec(temp_vec_attrib);
+
+		// Push the cRecord to the back of the source vector
+		source.push_back( temprec );
+
+        // Size of our data is now one larger
+		++size;
+
+		// Print progress every base (100000 rows)
+		if ( size % base == 0 )
+			std::cout << size << " records obtained." << std::endl;
+	}
+	std::cout << std::endl;
+	std::cout << size << " records have been fetched from "<< txt_file << std::endl;
+
+	// Now adjust map frequencies by size of records
+	unsigned int torvik_size = 15300000;
+	double normalize = torvik_size / (double)size;
+	for(auto it = fname_freqs.begin(); it != fname_freqs.end(); ++it ){
+		it->second *= normalize; // rounds to lower int
+
+		// Correct rare names to 10 (following torvik)
+		if(it->second < 10) it->second = 10;
+	}
+
+	// Store pointer to sample record to check successful read
+	cRecord::sample_record_pointer = & source.front();
+ 
+    // delete pointer_array (this isn't done automatically at end of function call?)
+	for ( unsigned int i = 0; i < num_cols; ++i )
+		delete pointer_array[i];
+	delete [] pointer_array;
+
+    // No interactives for PUBMED data
+	for ( list< cRecord>::iterator ci = source.begin(); ci != source.end(); ++ci )
+		ci->reconfigure_record_for_interactives();
+
+    // Print our sample record.
+	std::cout << "Sample Record:---------" << std::endl;
+	cRecord::sample_record_pointer->print();
+	std::cout << "-----------------" << std::endl;
+
+	return true;
+}
+
+//  Fills in array of pointers of cAttributes with their concrete type.
+//  Each reference passed to the function will be from requested_columns,
+//   filled in by the user in EngineConfig.txt.
+//  The concrete classes requested must have the same name returned by
+//    ::static_get_class_name as the column requested.
+//  static_get_class_name is one line function just returning class_name of class
+cAttribute * create_attribute_instance ( const string & id ) { //
+	cAttribute *p = NULL;
+	if ( id == cFirstname::static_get_class_name() ) {
+		p = new cFirstname;
+	}
+	else if ( id == cLastname::static_get_class_name() ) {
+		p = new cLastname;
+	}
+	else if ( id == cMiddlename::static_get_class_name() ) {
+		p = new cMiddlename;
+	}
+	else if ( id == cLatitude::static_get_class_name() ) {
+		p = new cLatitude;
+	}
+	else if ( id == cLongitude::static_get_class_name() ) {
+		p = new cLongitude;
+	}
+	else if ( id == cStreet::static_get_class_name() ) {
+		p = new cStreet;
+	}
+	else if ( id == cCountry::static_get_class_name() ) {
+		p = new cCountry;
+	}
+	else if ( id == cClass::static_get_class_name() ) {
+		p = new cClass;
+	}
+	else if ( id == cCoauthor::static_get_class_name() ) {
+		p = new cCoauthor;
+	}
+	else if ( id == cAssignee::static_get_class_name() ) {
+		p = new cAssignee;
+	}
+	else if ( id == cAsgNum::static_get_class_name() ) {
+		p = new cAsgNum;
+	}
+	else if ( id == cUnique_Record_ID::static_get_class_name() ) {
+		p = new cUnique_Record_ID;
+	}
+	else if ( id == cApplyYear::static_get_class_name() ) {
+		p = new cApplyYear;
+	}
+	else if ( id == cCity::static_get_class_name() ) {
+		p = new cCity;
+	}
+	else if ( id == cPatent::static_get_class_name() ) {
+		p = new cPatent;
+	}
+	else if ( id == cClass_M2::static_get_class_name() ) {
+		p = new cClass_M2;
+	}
+	// New PUBMED/MEDLINE classes added below
+	else if ( id == cTitleWords::static_get_class_name() ) {
+		p = new cTitleWords;
+	} else if ( id == cMeSH::static_get_class_name() ) {
+		p = new cMeSH;
+	} else if ( id == cAffiliations::static_get_class_name() ) {
+		p = new cAffiliations;
+	} else if ( id == cSuffix::static_get_class_name() ) {
+		p = new cSuffix;
+	} else if ( id == cAffiliation_Exists::static_get_class_name() ) {
+		p = new cAffiliation_Exists;
+	} else if ( id == cJournal::static_get_class_name() ) {
+		p = new cJournal;
+	} else if ( id == cLanguage::static_get_class_name() ) {
+        p = new cLanguage;
+	} else if (id == cEmail::static_get_class_name() ) {
+		p = new cEmail;
+	}
+	else {
+		p = NULL;
+	}
+
+	return p;
+}
+
+bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns){
 	std::ifstream::sync_with_stdio(false);
 	const char * delim = ",";	// this deliminator should never occur in the data.
 	const unsigned int delim_size = strlen(delim);

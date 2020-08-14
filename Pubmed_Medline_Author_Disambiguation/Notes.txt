@@ -9,9 +9,9 @@ DELIMITER for .csv is ','
 Left off at Disambigmain.cpp line 492
 ** To DO:
 - Install IBM CPLEX on cluster (Installed on local computer)
-- Not sure, but possible print a record other than what's at the top of the source file at the end of fetch
-  records from text?
-- Create unit test try catch added for cAssignee::configure_assignee()
+- Add conditional on whether or not to correct for fname frequency into disambiguate by set.
+    Also add the parameter into the EngineConfig file (read from there into fetch_Records from txt function)
+- DONE (not test, but have seen  it work): Create unit test try catch added for cAssignee::configure_assignee()
 
 - DONE: DisambigCustomizedDefs.cpp is where attribute compare functions defined. 
         (Check class hierarchies for default functions on single mode and set mode - checked. Inherited from base classes)
