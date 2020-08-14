@@ -687,7 +687,7 @@ const vector < double > & cCluster_Info::set_thresholds ( const vector < double 
  * Algorithm: call the cCluster::disambiguate method and, if necessary, the cCluster::merge method.
  */
 
-unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  list <double> & prior_list,
+unsigned int cCluster_Info::disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  list <double> & prior_list,
 							const cRatios & ratio, const string * const bid, const double threshold ) {
 
 	const bool should_update_prior = false;
