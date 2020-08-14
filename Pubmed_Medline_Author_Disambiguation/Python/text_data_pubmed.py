@@ -88,8 +88,8 @@ def download_pubmed_data():
     call("./pubmed_update")
     
 
-def process_data(filepath, filename, respath, rm_stopwords = True,
-                 stop_paths = None):
+def process_data(filepath, filename, respath, rm_stopwords=True,
+                 stop_paths=None):
     """
     Take zipped xml from medline and transform it into a clean, gzipped csv.
     
@@ -279,13 +279,13 @@ def start(text_data_dir, res_dir, nprocs=8):
 
     p = Pool(processes=nprocs)
     for dirpath, _, filenames in os.walk(text_data_dir):
-        for filename in filenames[:4]:
+        for filename in filenames[:40]:
             if "gz" in filename and 'md5' not in filename and 'copy' not in filename:
                 filepath = os.path.join(dirpath, filename)
                 print(filepath)
                 res_name = filename.split(".")[0] + ".csv.gz"
                 respath = os.path.join(res_dir, res_name)
-                if not os.path.exists(respath):
+                if os.path.exists(respath):
                     pass
                 else:
                     p.apply_async(process_data, args = (filepath,filename,
@@ -297,22 +297,25 @@ def start(text_data_dir, res_dir, nprocs=8):
     p.join()
 
 
-def combine( res_dir, combined_dir, nprocs, keep_original_files = True):
+def combine( res_dir, combined_dir, nprocs, keep_original_files=True):
     """Append all of the smaller zipped files together in a new "full" file."""
     
+    # Pool can only use top-level functions. Make append_files a global var
+    global append_files
     def append_files(filetuple):
         """Worker function  appends two files together."""
         if len(filetuple) != 2:
             errmsg = ("append_files function expected 2 files to append,"
                         "instead received" + len(filetuple) + ".")
-            raise Exception(errmsg)
-        file1 = pd.read_csv(filetuple[1], compression = "gzip", sep = ",",
-                            keep_default_na=False)
-        
+            print(errmsg)
+            raise Exception()
+        file1 = pd.read_csv(filetuple[1], compression = "gzip",
+                            sep = ",", keep_default_na=False)
         # Append to other file
         file1.to_csv(filetuple[0], compression= "gzip", mode = "a", sep = ",")
+        # Remove other file from hard drive
         os.remove(filetuple[1])
-        
+            
     def mute():
         """Mute the output of Pool."""
         sys.stdout = open(os.devnull, 'w') 
@@ -330,6 +333,7 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files = True):
         Adapted to work with .gzip files using the answers found on:
          'https://stackoverflow.com/questions/9252812
         """
+        
         # Open the input_file in read mode and output_file in write mode
         with gzip.open(input_file, 'rt') as read_obj, \
              gzip.open(output_file, 'wt') as write_obj:
@@ -345,7 +349,6 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files = True):
                 csv_writer.writerow(row)
         
     files = []
-    procpool = Pool(nprocs, initializer=mute)
     # Populate a vector with filenames of data
     for dirpath, dirnames, filenames in os.walk(res_dir):
         for filename in filenames:
@@ -358,24 +361,69 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files = True):
     # Send off files two at a time to cores to be appended together.
     # Put file names in a tuple and send them through with Pool.map
     filetuples = list()
+    
+    ## ALMOST WORKS GETTING FileNotFoundError: [Errno 2] No such file or directory: '/Volumes/LaCie/PubmedData_Update_2019/Clean_Csvs/pubmed20n0005.csv.gz'
     while len(files) > 1:
         # Make an iterator of the files variable
         iterfiles = iter(files)
+        procpool = Pool(nprocs)  #, initializer=mute)
+        # Make an index to pop the files variable
+        fileidx = -1
+        
         for file in iterfiles:
+            print(file)
+            
+            # Iterate our index along with our iterator
+            fileidx += 1
+            
             # If our queue is full, send to processors
             if len(filetuples) == nprocs:
+                print("Sending to cores")
                 procpool.map(append_files,filetuples, chunksize=1)
+                procpool.close()
+                procpool.join()
+                procpool = Pool(nprocs)  #, initializer=mute)
                 filetuples = list()
 
             # If there is an odd file at the end of the list, empty queue
             # Otherwise it'd be possible for repeats in the queue on next loop
             if (file == files[-1]):
-                procpool.map(append_files,filetuples, chunksize=1)
+                print("last file in for")
+                # If we have files to be appended, append
+                if filetuples:
+                    print("Sending to cores")
+                    procpool.map(append_files,filetuples, chunksize=1)
+                    procpool.close()
+                    procpool.join()
+                    procpool = Pool(nprocs)  #, initializer=mute)
+                
+                # Now reset the list and break out of the loop
                 filetuples = list()
                 break
             else:
+                print("Appending...")
                 # Otherwise we add a new pair of files to be appended together
                 filetuples.append((file,next(iterfiles)))
+                print("popping " + files[fileidx + 1] )
+                files.pop(fileidx + 1)
+                print("Last appended tuple.")
+                print(filetuples[-1])
+                print("Length of files is now " + str(len(files)))
+                
+                # If we are at the end of the list after append, send to cores
+                if (file == files[-1]):
+                    print("Sending to cores")
+                    procpool.map(append_files,filetuples, chunksize=1)
+                    procpool.close()
+                    procpool.join()
+                    procpool = Pool(nprocs)  #, initializer=mute)
+                    filetuples = list()
+    try:
+        procpool.close()
+        procpool.join()
+    except Exception as e:
+        pass
+
 
     # Change file name of combined dataset to full_pubmed.csv.gz
     full_data_dir =  os.path.dirname(files[0])
@@ -392,7 +440,7 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files = True):
     os.remove(full_data_dir + "/full_pubmed_no_id.csv.gz")
 
 
-def main(download_data = False, combine_data =  False, nprocs=8):
+def main(download_data=False, combine_data=True, nprocs=8):
     """
     text_data_dir: folder of raw data
     text_res_dir: folder of output
@@ -407,6 +455,9 @@ def main(download_data = False, combine_data =  False, nprocs=8):
     for temp_dir in [res_dir]:
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
+    for temp_dir in [combined_dir]:
+        if not os.path.exists(temp_dir):
+            os.makedirs(temp_dir)
     
     # start reads, cleans, and saves the ~1050 xml files into csv.gz files
     start(text_data_dir=text_data_dir, res_dir=res_dir, nprocs=nprocs)
@@ -417,5 +468,3 @@ def main(download_data = False, combine_data =  False, nprocs=8):
 
 if __name__ == "__main__":
         main()
-
-## Make Coauthor Column look like 'D.ROY-0/S.LIN-0/J.LAGARENNE-0' (OK but why -0)
