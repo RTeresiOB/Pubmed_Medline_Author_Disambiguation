@@ -136,6 +136,7 @@ cCluster::cCluster( const cCluster & rhs ) : m_info(rhs.m_info), m_fellows(rhs.m
  *
  */
 
+// Need to get rid of the dependence on asian countries - probably change to language and add an argument to disable
 cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, const double mutual_threshold) const {
 	static const unsigned int country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
 	static const string asian_countries[] = {"JP"};
