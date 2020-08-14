@@ -52,6 +52,10 @@ class cRecord_Reconfigurator;
 const cRecord_Reconfigurator * generate_interactive_reconfigurator( const cAttribute * pAttrib);
 void reconfigure_interactives ( const cRecord_Reconfigurator * pc, const cRecord * pRec);
 
+// Initialize map of first name frequencies (this could possibly go somewhere better)
+map<std::string, int> fname_freqs;
+
+
 
 
 class cAttribute;
