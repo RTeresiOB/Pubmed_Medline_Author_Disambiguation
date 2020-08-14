@@ -1677,7 +1677,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 								"Probably means there is a problem in correcting for"
 								"first name frequencies." << std::endl;
 				} else{
-					screen_r /= it->second;
+					screen_r /= pow(it->second,-1.0024);
 				}
 			}
 				
