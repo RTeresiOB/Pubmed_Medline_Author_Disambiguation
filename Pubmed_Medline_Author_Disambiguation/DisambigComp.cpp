@@ -636,9 +636,9 @@ int torvik_name_compare(const string & s1, const string & s2, cNicknames* nnamep
     bool is_initials = false;
     const char * cs1 = s1.c_str(), * cs2 = s2.c_str(); // c-string versions of inputs
     // First check if either string is empty
-    if(s1.empty() || s2.empty()){
+    if(s1.size() <= 1 || s2.size() <= 1){
         return 1;
-    } 
+    }
     
     // If they're not empty, but are the same, return max score of 11.
     else if(s1 == s2){
