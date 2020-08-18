@@ -1633,6 +1633,7 @@ std::pair<const cRecord *, double> disambiguate_by_set_backup (
 #endif
 
 //// Introducing Polymorphism into this function for Pubmed/Medline. Making copy of function without country_index and related functionality (no country data for pubmed)
+// This is the Pubmed version  (no countries) - assumes email and pmid field included
 std::pair<const cRecord *, double> disambiguate_by_set (
 									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
@@ -1641,34 +1642,31 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	static const unsigned int firstname_index = cRecord::get_similarity_index_by_name(cFirstname::static_get_class_name());
 	static const unsigned int midname_index = cRecord::get_similarity_index_by_name(cMiddlename::static_get_class_name());
 	static const unsigned int lastname_index = cRecord::get_similarity_index_by_name(cLastname::static_get_class_name());
-	static const unsigned int country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
-
-	static const bool country_check = false;
-
+	static const unsigned int email_index = cRecord::get_index_by_name(cEmail::static_get_class_name());
+	static const unsigned int pmid_index = cRecord::get_index_by_name(cPMID::static_get_class_name());
 
 	//prescreening.
 	const bool prescreening = true;
 	if ( prescreening ) {
-		if ( country_check ) {
-			const cAttribute * p1 = key1->get_attrib_pointer_by_index(country_index);
-			const cAttribute * p2 = key2->get_attrib_pointer_by_index(country_index);
-			if ( p1 != p2 && p1->is_informative() && p2->is_informative() )
-				return std::pair<const cRecord *, double> (NULL, 0);
-		}
 
 		// Vector is in order of attribute indices
 		vector < unsigned int > screen_sp = key1->record_compare(*key2);
 
-		/// LEFT OFF HERE 
-		// Need to change screen_r (and normal r's later) to adjust for number of people with name (or size of block?)
-		// This change only occurs if the first name gets a perfect match (11). 
+		// Before we check the ratio, we want to check for the two cases when ratios aren't used
+			// 1. The two records share the same article/patent -> LOW R-value
+			// 2. The two records share an email address -> HIGH R-value
+		if(screen_sp.at(email_index) != cPMID::max_value) // Going to define max value as not matching
+			return std::pair<const cRecord *, double> (NULL, 0);  // Don't compare Blocks
+		else if(screen_sp.at(email_index) != cEmail::max_value){
+			/// LEFT OFF HERE 
+			// Need to change screen_r (and normal r's later) to adjust for number of people with name (or size of block?)
+			// This change only occurs if the first name gets a perfect match (11). Done but unchecked.
 
-		double screen_r = fetch_ratio(screen_sp, ratio.get_ratios_map());
+			double screen_r = fetch_ratio(screen_sp, ratio.get_ratios_map());
 
-		// Check if first name was perfect match
+			// Check if first name was perfect match
 
-		// First is the attribute activated?
-		if(key1->get_attrib_pointer_by_index(firstname_index)->is_comparator_activated())
+			// First is the attribute activated?
 			if(screen_sp.at(firstname_index) == cFirstname::max_value){
 				// Get data at first name index, and look for matching entry in map
 				auto it = fname_freqs.find(*(key1->get_data_by_index(firstname_index).at(1)));
@@ -1680,10 +1678,11 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 					screen_r /= pow(it->second,-1.0024);
 				}
 			}
-				
-		const double screen_p = 1.0 / ( 1.0 + ( 1.0 - prior )/ prior / screen_r );
-		if ( screen_p < 0.3 || screen_sp.at(firstname_index) == 0 || screen_sp.at(midname_index) == 0 || screen_sp.at(lastname_index) == 0 )
-			return std::pair<const cRecord *, double> (NULL, 0);
+					
+			const double screen_p = 1.0 / ( 1.0 + ( 1.0 - prior )/ prior / screen_r );
+			if ( screen_p < 0.3 || screen_sp.at(firstname_index) == 0 || screen_sp.at(midname_index) == 0 || screen_sp.at(lastname_index) == 0 )
+				return std::pair<const cRecord *, double> (NULL, 0);
+		}
 	}
 	const bool partial_match_mode = true;
 
@@ -1712,21 +1711,18 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	for ( cGroup_Value::const_iterator p = match1.begin(); p != match1.end(); ++p ) {
 		for ( cGroup_Value::const_iterator q = match2.begin(); q != match2.end(); ++q ) {
 
-			if ( country_check ) {
-				const cAttribute * p1 = (*p)->get_attrib_pointer_by_index(country_index);
-				const cAttribute * p2 = (*q)->get_attrib_pointer_by_index(country_index);
-				if ( p1 != p2 && p1->is_informative() && p2->is_informative() )
-					return std::pair<const cRecord *, double> (NULL, 0);
-			}
-             
-
-
+			double r_value;
 			vector< unsigned int > tempsp = (*p)->record_compare(* *q);
 			if ( tempsp.at(firstname_index) == 0 || tempsp.at(midname_index) == 0 || tempsp.at(lastname_index) == 0 )
 				return std::pair<const cRecord *, double> (NULL, 0);
 
-
-			double r_value = fetch_ratio(tempsp, ratio.get_ratios_map());
+			if(tempsp.at(email_index) != cPMID::max_value) // Going to define max value as not matching
+				r_value = 10e-20; 
+			else if(tempsp.at(email_index) == cEmail::max_value){
+				r_value = 10e20;
+			} else{
+				r_value = fetch_ratio(tempsp, ratio.get_ratios_map());
+			}
 
 			if ( r_value == 0 ) {
 				interactive += 0;
@@ -2377,6 +2373,8 @@ cAttribute * create_attribute_instance ( const string & id ) { //
         p = new cLanguage;
 	} else if (id == cEmail::static_get_class_name() ) {
 		p = new cEmail;
+	} else if(id == cPMID::static_get_class_name() ) {
+		p = new cPMID;
 	}
 	else {
 		p = NULL;
@@ -2657,6 +2655,8 @@ cAttribute * create_attribute_instance ( const string & id ) { //
         p = new cLanguage;
 	} else if (id == cEmail::static_get_class_name() ) {
 		p = new cEmail;
+	} else if (id == cPMID::static_get_class_name() ) {
+		p = new cPMID;
 	}
 	else {
 		p = NULL;
