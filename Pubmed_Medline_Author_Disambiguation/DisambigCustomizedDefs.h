@@ -343,6 +343,20 @@ public:
     }
     int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
 };
+
+class cPMID : public cAttribute_Single_Mode <cPMID> { // Need to implement compare
+public:
+    static const unsigned int max_value = 1;
+    
+    cPMID(const char * source = NULL ) {}
+    unsigned int get_attrib_max_value() const {
+        if ( ! is_comparator_activated() )
+            cAttribute::get_attrib_max_value();
+        return max_value;
+    }
+    int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
+	unsigned int compare(const cAttribute & right_hand_side) const ;
+};
 /////////////////////////
 
 //=======

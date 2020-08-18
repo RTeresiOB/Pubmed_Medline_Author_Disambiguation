@@ -63,6 +63,8 @@ template <> const string cAttribute_Basic<cMeSH>::class_name = "MeSH";
 template <> const string cAttribute_Basic<cMeSH>::attrib_group = "Article";
 template <> const string cAttribute_Basic<cAffiliations>::class_name = "Affiliations";
 template <> const string cAttribute_Basic<cAffiliations>::attrib_group = "Article";
+template <> const string cAttribute_Basic<cPMID>::class_name = "PMID";
+template <> const string cAttribute_Basic<cPMID>::attrib_group = "Article";
 ////////////////////////
 
 // Adding class_name and attrib_group for unused cClass
@@ -380,6 +382,23 @@ unsigned int cAffiliation_Exists::compare(const cAttribute & rhs) const {
 	} catch( const std::bad_cast & except ){
 		std::cerr << except.what() << std::endl;
 		std::cerr << "Error: " << this->get_class_name() << " is compared to " << rhs.get_class_name() << std::endl;
+		throw;
+	}
+}
+unsigned int cPMID::compare(const cAttribute & right_hand_side) const {
+	if ( ! is_comparator_activated () )
+		throw cException_No_Comparision_Function(static_get_class_name().c_str());
+	try {
+		unsigned int res = 0;
+		const bool exact_same = this->exact_compare(right_hand_side) == 1 ;
+		if ( exact_same && this->is_informative())
+			res = 0;
+		else  res = 1;
+		return res;
+	}
+	catch ( const std::bad_cast & except ) {
+		std::cerr << except.what() << std::endl;
+		std::cerr << "Error: " << this->get_class_name() << " is compared to " << right_hand_side.get_class_name() << std::endl;
 		throw;
 	}
 }
