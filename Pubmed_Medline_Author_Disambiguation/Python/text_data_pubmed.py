@@ -12,7 +12,6 @@ import os
 import io
 import sys
 import re
-import xml.sax
 from csv import reader, writer
 from pathlib import Path
 import shutil # Copy files to another directory
@@ -20,7 +19,6 @@ from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 from datetime import datetime
-import zipfile
 import gzip
 from pubmed_parser import medline_parser
 
