@@ -11,6 +11,7 @@ Left off at Disambigmain.cpp line 492
 - Install IBM CPLEX on cluster (Installed on local computer)
 - Add conditional on whether or not to correct for fname frequency into disambiguate by set.
     Also add the parameter into the EngineConfig file (read from there into fetch_Records from txt function)
+- DONE PMID class if not already made. Compare function 
 - DONE (not test, but have seen  it work): Create unit test try catch added for cAssignee::configure_assignee()
 
 - DONE: DisambigCustomizedDefs.cpp is where attribute compare functions defined. 
@@ -18,7 +19,7 @@ Left off at Disambigmain.cpp line 492
     - Comparison functions are virtual functions within the base classes for each attribute type.
         They must be declared and overridden in the concrete classes for customized behavior.
 - Implement Email matching. 
-    - Matching emails have manually assigned r-values.
+    - Matching emails have manually assigned r-values. DONE
     - This should be implemented after initial run-through.
 
 
