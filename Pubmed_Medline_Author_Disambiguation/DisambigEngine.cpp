@@ -2175,6 +2175,16 @@ bool fetch_records_from_txt(list <cRecord> & source, bool adjust_for_fname_freq,
 	// always do this for all the attribute classes
 	for ( unsigned int i = 0; i < num_cols; ++i )
 		pointer_array[i]->check_interactive_consistency(cRecord::column_names);
+	
+	// Adding hacky add-on to previous loop
+	// cAffiliations not really interactive field, but needs Lastname for stoplist
+	// It should also probably be noted that this will require Lastname to come before Affiliations in the .txt/.csv
+	bool affilstoprm  = true;
+	string lastnameholder = "";
+	if(std::find(cRecord::column_names.begin(), cRecord::column_names.end(), cLastname::static_get_class_name()) == cRecord::column_names.end()
+		|| std::find(cRecord::column_names.begin(), cRecord::column_names.end(), cAffiliations::static_get_class_name()) == cRecord::column_names.end())
+		affilstoprm = false;
+
 
     // Prints class names (e.g. Firstname)
 	std::cout << "Involved attributes are: ";
@@ -2237,9 +2247,17 @@ bool fetch_records_from_txt(list <cRecord> & source, bool adjust_for_fname_freq,
 				string_cache[i] = filedata.substr(prev_pos, pos - prev_pos);
 			}
 
+			if(pointer_array[i]->get_class_name() == cLastname::static_get_class_name())
+				lastnameholder = string_cache[i];
+
             // Set the data of the class entry in our pointer array to the data read
-			pointer_array[i]->reset_data(string_cache[i].c_str());
-			pAttrib = pointer_array[i]->clone();	//HERE CREATED NEW CLASS INSTANCES.
+			if(pointer_array[i]->get_class_name() == cAffiliations::static_get_class_name()){
+				pointer_array[i]->reset_data(string_cache[i].c_str(), lastnameholder); // make virtual fun in cAttribute
+				pAttrib = pointer_array[i]->clone();	//HERE CREATED NEW CLASS INSTANCES.
+			} else{
+				pointer_array[i]->reset_data(string_cache[i].c_str());
+				pAttrib = pointer_array[i]->clone();	//HERE CREATED NEW CLASS INSTANCES.
+			}
 
 			// Add to mapping of frequency of first names if attribute is Firstname and is not a single initial
 			if((pointer_array[i]->get_class_name() == cFirstname::static_get_class_name())

@@ -210,14 +210,19 @@ public:
 };
 
 class cAffiliations: public cAttribute_Set_Mode < cAffiliations >  {
+private:
+	static std::map<string, std::vector<string>> stopword_map;  // Map of affiliation stopwords to remove (maps lastnames to vec of stopwords)
+	static std::map<string, std::vector<string>> read_map_from_txt(string infilepath = "/Users/RobertTeresi/Downloads/my_file.txt");
 public:
+	bool split_string(const char*, string);		//override because some class-specific splitting is involved.
     static unsigned int const max_value =  100;   // Essentially no limit to how many words they can have in common
-    
     unsigned int get_attrib_max_value() const {
         if ( ! is_comparator_activated() )
             cAttribute::get_attrib_max_value();
         return max_value;
     }
+
+
 };
 
 class cMeSH: public cAttribute_Set_Mode < cMeSH >  {

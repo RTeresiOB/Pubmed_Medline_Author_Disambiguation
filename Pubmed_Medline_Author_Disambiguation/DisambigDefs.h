@@ -309,9 +309,11 @@ protected:
 public:
 	virtual unsigned int compare(const cAttribute & rhs) const = 0 ;
 	virtual bool split_string(const char* );	//can be overridden if necessary.
+	virtual bool split_string(const char*, string); // for cAffiliations
 	cAttribute (const char * inputstring ) {}
 	virtual bool operator == ( const cAttribute & rhs) const { return this == &rhs ;}
 	void reset_data(const char * inputstring) { get_data_modifiable().clear(); /*data_count.clear(); */ split_string(inputstring);}
+	void reset_data(const char* inputstring, string lastname){get_data_modifiable().clear(); /*data_count.clear(); */ split_string(inputstring, lastname);} // For cAffiliations
 	virtual const cAttribute*  config_interactive (const vector <const cAttribute *> &inputvec ) const { throw cException_No_Interactives(get_class_name().c_str()); return NULL;};
 	virtual const vector <const string*> & get_data() const = 0;
 	virtual const vector <const cAttribute *> & get_interactive_vector() const { throw cException_No_Interactives(get_class_name().c_str()); };

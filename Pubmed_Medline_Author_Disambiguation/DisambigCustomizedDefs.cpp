@@ -114,6 +114,52 @@ unsigned int cFirstname::previous_truncation = 0;
 unsigned int cFirstname::current_truncation = 0;
 const string cFirstname::path_to_file = "/Users/RobertTeresi/Documents/Github/Pubmed_Medline_Author_Disambiguation-orig/nickname_test.csv";
 cNicknames * const cFirstname::nickname_ptr = new cNicknames(cFirstname::path_to_file);
+std::map<string, std::vector<string>> cAffiliations::stopword_map = cAffiliations::read_map_from_txt();
+
+std::map<string, std::vector<string>> read_map_from_txt(string infilepath = "/Users/RobertTeresi/Downloads/my_file.txt"){
+	// Initialize vector of stopword pairs
+    //vector<pair<string, string>> stopword_vec;
+	map<string,vector<string>> stopmap;
+    // Helper vars
+    std::string line, colname;
+    string val;
+
+    // Create an input filestream
+    std::ifstream inputFile(infilepath);
+
+    if(!inputFile.is_open()) throw std::runtime_error("Could not open file");
+
+    if(inputFile.good()){
+        while(getline(inputFile, line))
+		{
+		// Create a stringstream of the current line
+		std::stringstream ss(line);
+        int colIdx = 0;
+        string first;
+		vector<string> second;
+        while(std::getline(ss, val, ',')){
+            if(colIdx == 0){
+                first = val;
+            } else if(colIdx == 1){
+                second.push_back(val);
+				map<string, vector<string>>::iterator mapit = stopmap.find(first);
+				// Look for entry in map
+				if( mapit == stopmap.end())
+					stopmap.insert(make_pair(first,second));
+				else{
+					mapit->second.push_back(val);
+				}
+            } else{
+                throw std::runtime_error("Expected two entries per line. Encountered more");
+            }
+            ++colIdx;
+        }
+        }
+    } else{
+        throw std::runtime_error("File not good.");
+    }
+	return(stopmap);
+}
 
 /*
  * cFirstname::split_string does 3 things:
@@ -140,6 +186,34 @@ bool cFirstname::split_string(const char *inputdata) {
 	return true;
 }
 
+/// Need way to access last name
+
+bool cAffiliations::split_string(const char* inputdata, string lastname) {
+		try {
+			cAttribute::split_string(inputdata);
+		}
+		catch ( const cException_Vector_Data & except) {
+			//std::cout << "cClass allows vector data. This info should be disabled in the real run." << std::endl;
+		}
+		//const string raw(inputdata);
+		this->attrib_set.clear();
+		for ( vector < const string *>::const_iterator p = this->get_data_modifiable().begin(); p != this->get_data_modifiable().end(); ++p ) {
+			if ( (*p)->empty() )
+				continue;
+			else{
+				// Make sure affiliation is not in map
+				decltype(stopword_map.find(lastname)) mapit = stopword_map.find(lastname);
+				if(mapit != stopword_map.end() &&
+				 std::find(mapit->second.begin(), mapit->second.end(), *p) != mapit->second.end())
+				 	continue;
+			}
+			this->attrib_set.insert(*p);
+		}
+		this->get_data_modifiable().clear();
+		//this->get_data_modifiable().insert(this->get_data_modifiable().begin(), this->add_string(raw));
+		return true;
+	}
+//std::map<string, std::vector<string>> stopword_map
 
 unsigned int cFirstname::compare(const cAttribute & right_hand_side) const {
 	// ALWAYS CHECK THE ACTIVITY OF COMPARISON FUNCTION !!
