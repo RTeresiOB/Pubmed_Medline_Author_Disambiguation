@@ -8,6 +8,7 @@ Parsers for MEDLINE XML
 import re
 import numpy as np
 from itertools import chain
+import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pubmed_parser.utils import read_xml, stringify_children, month_or_day_formater
 
@@ -356,7 +357,15 @@ def parse_author_affiliation(medline):
                 else:
                     lastname = ""
                 if author.find("AffiliationInfo/Affiliation") is not None:
-                    affiliation = author.find("AffiliationInfo/Affiliation").text or ""
+                    # Need to make a list of these
+                    affiliations = author.findall("AffiliationInfo")
+                    affiliation = ""
+                    for node in affiliations:
+                        for i in node.getiterator():
+                            if i.tag=='Affiliation' && affiliation:
+                                affiliation = i.text
+                            else if i.tag=='Affiliation':
+                                affiliation = ';'.join([affiliation, i.text])
                     affiliation = affiliation.replace(
                         "For a full list of the authors' affiliations please see the Acknowledgements section.",
                         "",
@@ -540,11 +549,12 @@ def parse_article_info(
         language = ""
     authors_dict = parse_author_affiliation(medline)
     if not author_list:
-        affiliations = ";".join(
+        # Going to need to split the affiliations twice
+        affiliations = "&&".join(
             [
                 author.get("affiliation", "")
                 for author in authors_dict
-                if author.get("affiliation", "") is not ""
+             #if author.get("affiliation", "") is not ""
             ]
         )
         authors = ";".join(
