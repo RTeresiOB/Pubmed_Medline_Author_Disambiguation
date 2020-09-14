@@ -1,13 +1,4 @@
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <map>
-#include <string>
-#include <vector>
-#include <tuple> // assign function result to two variables
-#include <utility> // std::pair/std::make_pair
-
-using namespace std;
+#include "map_aggregate.h"
 
 // Composite function that takes in list of dictionaries from python and writes result to file
 void affil_stopword_find(vector<map<string, pair<unsigned int, map<string, unsigned int>>>> listofdicts, string outfilename){
@@ -28,13 +19,16 @@ void affil_stopword_find(vector<map<string, pair<unsigned int, map<string, unsig
 }
 
 // Function to print vector of stopwords to file
-void print_to_file(vector<pair<string, string>> stopword_vec, string outfilepath = "/Users/RobertTeresi/Downloads/my_file.txt"){
+void print_to_file(vector<pair<string, string>> stopword_vec, string outfilepath){
     ofstream outFile(outfilepath);
+    cout << "Printing to file." << endl;
     // the important part
     for (const auto &pair : stopword_vec) outFile << pair.first << "," << pair.second << "\n";
+
+    cout << "Printing complete." << endl;
 }
 
-void read_file(string infilepath = "/Users/RobertTeresi/Downloads/my_file.txt"){
+void read_file(string infilepath){
     
     // Initialize vector of stopword pairs
     vector<pair<string, string>> stopword_vec;
@@ -119,6 +113,7 @@ vector<pair<string, string>> stopword_gen(map<string, unsigned int> affilword_co
             }
         }
     }
+    cout << stopword_pairs.size() << " Stopword pairs found." << endl;
     // Return our list of lname, stopword pairs
     return(stopword_pairs);
 }
@@ -135,6 +130,7 @@ map<string,unsigned int> affilword_count(map<string,pair<unsigned int, map<strin
             affilmap[it2->first] += it2->second;
         }
     }
+    cout << "Affiliation words counted." << endl;
     return(affilmap);
 }
 
@@ -179,6 +175,7 @@ tuple<unsigned int, map<string, pair<unsigned int, map<string, unsigned int> > >
             }
 
         }
+        cout << "Total records counted: " << nRecords << "\n and affiliations for each name counted." << endl; 
         return(make_tuple(nRecords, finalmap));
 }
 
@@ -224,7 +221,7 @@ int main(){
     cout << "Final map under key b" << endl;
     print_map(finalmap["b"]);
     */
-   vector<pair<string,string>> vec{make_pair("One","huh"), make_pair("Two","bug"),make_pair("Three","Tree")};
-   print_to_file(vec);
-   read_file();
+   //vector<pair<string,string>> vec{make_pair("One","huh"), make_pair("Two","bug"),make_pair("Three","Tree")};
+   //print_to_file(vec);
+   //read_file();
 }
