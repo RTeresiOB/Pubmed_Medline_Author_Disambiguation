@@ -604,6 +604,10 @@ cReconfigurator_AsianNames::cReconfigurator_AsianNames():
 		east_asian.push_back(string("KR"));
 		east_asian.push_back(string("CN"));
 		east_asian.push_back(string("TW"));
+		east_asian.push_back(string("Korea (South)"));
+		east_asian.push_back(string("South Korea"));
+		east_asian.push_back(string("China"));
+		east_asian.push_back(string("Taiwan"));
 	} catch(const cException_ColumnName_Not_Found & error){
 		std::cout << "No Country Found looking for Language." << std::endl;
 		// In this case we correct when authors work in Korean or Chinese language
