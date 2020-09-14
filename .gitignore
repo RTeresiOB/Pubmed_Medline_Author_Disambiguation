@@ -4,3 +4,5 @@ Pubmed_Medline_Author_Disambiguation/invpat_head.txt
 *.gch
 Pubmed_Medline_Author_Disambiguation/Python/pubmed_parser/__pycache__/__init__.cpython-37.pyc
 Pubmed_Medline_Author_Disambiguation/Python/pubmed_parser/__pycache__/medline_parser.cpython-37.pyc
+Pubmed_Medline_Author_Disambiguation/Python/pubmed_parser/__pycache__/__init__.cpython-37.pyc
+Pubmed_Medline_Author_Disambiguation/Python/pubmed_parser/__pycache__/medline_parser.cpython-37.pyc
