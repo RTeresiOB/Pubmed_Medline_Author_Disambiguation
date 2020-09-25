@@ -210,9 +210,13 @@ public:
 };
 
 class cAffiliations: public cAttribute_Set_Mode < cAffiliations >  {
+
+/*
+TO DO:
 private:
 	static std::map<string, std::vector<string>> stopword_map;  // Map of affiliation stopwords to remove (maps lastnames to vec of stopwords)
 	static std::map<string, std::vector<string>> read_map_from_txt(string infilepath = "/Users/RobertTeresi/Downloads/my_file.txt");
+*/
 public:
 	bool split_string(const char*, string);		//override because some class-specific splitting is involved.
     static unsigned int const max_value =  100;   // Essentially no limit to how many words they can have in common
@@ -275,6 +279,12 @@ public:
 class cApplyYear: public cAttribute_Single_Mode<cApplyYear> {
 public:
 	cApplyYear(const char * source = NULL ){}
+	//SHOULD NOT OVERRIDE THE COMPARISON FUNCTION SINCE LONGITUDE IS NOT BEING COMPARED. IT IS WITH THE LATITUDE COMPARISION.
+};
+
+class cPubDate: public cAttribute_Single_Mode<cApplyYear> {
+public:
+	cPubDate(const char * source = NULL ){}
 	//SHOULD NOT OVERRIDE THE COMPARISON FUNCTION SINCE LONGITUDE IS NOT BEING COMPARED. IT IS WITH THE LATITUDE COMPARISION.
 };
 
