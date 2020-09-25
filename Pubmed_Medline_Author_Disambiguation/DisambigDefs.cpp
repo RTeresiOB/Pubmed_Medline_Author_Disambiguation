@@ -14,6 +14,7 @@ using std::string;
 
 const cSimilarity_Compare::cException_Different_Similarity_Dimensions cSimilarity_Compare::default_sp_exception("Error: Different Similarity profile dimensions");
 vector <string> cAttribute::Derived_Class_Name_Registry;
+map<std::string, int> fname_freqs;
 
 
 

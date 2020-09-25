@@ -53,8 +53,7 @@ const cRecord_Reconfigurator * generate_interactive_reconfigurator( const cAttri
 void reconfigure_interactives ( const cRecord_Reconfigurator * pc, const cRecord * pRec);
 
 // Initialize map of first name frequencies (this could possibly go somewhere better)
-map<std::string, int> fname_freqs;
-
+extern map<std::string, int> fname_freqs;
 
 
 
@@ -240,6 +239,7 @@ public:
  * 				4. cUnique_Record_ID
  * 				4. cPatent
  * 				4. cApplyYear
+ * 				4. cPubDate
  *				4. cStreet
  *				4. cLatitude_Data
  *				4. cLongitude_Data
@@ -309,7 +309,7 @@ protected:
 public:
 	virtual unsigned int compare(const cAttribute & rhs) const = 0 ;
 	virtual bool split_string(const char* );	//can be overridden if necessary.
-	virtual bool split_string(const char*, string); // for cAffiliations
+	virtual bool split_string(const char*, string) {}; // for cAffiliations
 	cAttribute (const char * inputstring ) {}
 	virtual bool operator == ( const cAttribute & rhs) const { return this == &rhs ;}
 	void reset_data(const char * inputstring) { get_data_modifiable().clear(); /*data_count.clear(); */ split_string(inputstring);}
@@ -508,6 +508,8 @@ public:
 template <typename Derived>
 class cAttribute_Intermediary : public cAttribute_Basic < Derived > {
 	friend bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns);
+	friend bool fetch_records_from_txt(list <cRecord> & source, bool adjust_for_fname_freq,
+					 					const char * txt_file, const vector<string> &requested_columns);
 private:
 	static set < string > data_pool;
 	static map < Derived, int > attrib_pool;
