@@ -493,7 +493,6 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 	// Create match  cCluster_Info object - key Disambiguation class (see: DisambigCluster.h)
 	cCluster_Info match ( uid_dict, matching_mode, frequency_adjust_mode, debug_mode);
 	match.set_thresholds( threshold_vec);
-
 	char xset01[buff_size], tset05[buff_size], ratiofile[buff_size], matchfile[buff_size], stat_patent[buff_size], stat_personal[buff_size];
 	char oldmatchfile[buff_size], debug_block_file[buff_size], network_file[buff_size], postprocesslog[buff_size], prior_save_file[buff_size];
 	char roundstr[buff_size];
@@ -503,17 +502,13 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 	// of disambiguation. It can be either “true” or “false”, although “true”
 	// is recommended.	
 	bool network_clustering = EngineConfiguration::postprocess_after_each_round;
-
 	if ( debug_mode )
 		network_clustering = false;
-
 	unsigned int round = starting_round;
 
 	cRatioComponent personalinfo(uid_dict, string("Personal") );
-
 	const unsigned int num_coauthors_to_group = 2;
-	cBlocking_Operation_By_Coauthors blocker_coauthor( all_rec_pointers, num_coauthors_to_group );
-
+	cBlocking_Operation_By_Coauthors blocker_coauthor( all_rec_pointers, num_coauthors_to_group, true );
 	//Reconfigure
 	std::cout << "Reconfiguring ..." << std::endl;
 	const cReconfigurator_AsianNames corrector_asiannames;
@@ -577,10 +572,10 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 				// What is the order here? Why are we blocking on these columns?
 				presort_columns.push_back(cFirstname::static_get_class_name());
 				presort_columns.push_back(cLastname::static_get_class_name());
-				presort_columns.push_back(cAssignee::static_get_class_name());
-				presort_columns.push_back(cStreet::static_get_class_name());
-				presort_columns.push_back(cCity::static_get_class_name());
-				presort_columns.push_back(cCountry::static_get_class_name());
+				//presort_columns.push_back(cAssignee::static_get_class_name());
+				//presort_columns.push_back(cStreet::static_get_class_name());
+				//presort_columns.push_back(cCity::static_get_class_name());
+				//presort_columns.push_back(cCountry::static_get_class_name());
 
 				//presort_columns.push_back(cClass::static_get_class_name());
 				// Make vector of string manipulators  (that don't change the string)
