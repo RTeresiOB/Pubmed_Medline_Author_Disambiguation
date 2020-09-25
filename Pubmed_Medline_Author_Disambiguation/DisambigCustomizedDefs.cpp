@@ -90,9 +90,11 @@ template <> const string cAttribute_Basic<cAssignee>::attrib_group = "Patent";
 template <> const string cAttribute_Basic<cAsgNum>::class_name = "AsgNum";
 
 // Not PMID, more like row number!
-template <> const string cAttribute_Basic<cUnique_Record_ID>::class_name = "Unique_Record_ID";
+template <> const string cAttribute_Basic<cUnique_Record_ID>::class_name = "RecordID";
 
 template <> const string cAttribute_Basic<cApplyYear>::class_name = "ApplyYear";
+
+template <> const string cAttribute_Basic<cApplyYear>::class_name = "PubDate";
 
 template <> const string cAttribute_Basic<cCity>::class_name = "City";
 
@@ -114,7 +116,11 @@ unsigned int cFirstname::previous_truncation = 0;
 unsigned int cFirstname::current_truncation = 0;
 const string cFirstname::path_to_file = "/Users/RobertTeresi/Documents/Github/Pubmed_Medline_Author_Disambiguation-orig/nickname_test.csv";
 cNicknames * const cFirstname::nickname_ptr = new cNicknames(cFirstname::path_to_file);
+
+/*
+TO DO:
 std::map<string, std::vector<string>> cAffiliations::stopword_map = cAffiliations::read_map_from_txt();
+*/
 
 std::map<string, std::vector<string>> read_map_from_txt(string infilepath = "/Users/RobertTeresi/Downloads/my_file.txt"){
 	// Initialize vector of stopword pairs
@@ -201,11 +207,14 @@ bool cAffiliations::split_string(const char* inputdata, string lastname) {
 			if ( (*p)->empty() )
 				continue;
 			else{
+				continue; // Error below. Fix later.
+				/*
 				// Make sure affiliation is not in map
 				decltype(stopword_map.find(lastname)) mapit = stopword_map.find(lastname);
 				if(mapit != stopword_map.end() &&
 				 std::find(mapit->second.begin(), mapit->second.end(), *p) != mapit->second.end())
 				 	continue;
+				*/
 			}
 			this->attrib_set.insert(*p);
 		}
