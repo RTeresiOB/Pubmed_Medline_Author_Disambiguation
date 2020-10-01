@@ -335,7 +335,7 @@ void cCluster_Set::read_from_file( const char * filename, const map <string, con
 			if ( count % base == 0 )
 				std::cout << count << " records have been loaded from the cluster file. " << std::endl;
 		}
-		std::cout << "Totally, " << count << " records have been loaded from " << filename << std::endl;
+		std::cout << "In Total, " << count << " records have been loaded from " << filename << std::endl;
 	}
 	else {
 		throw cException_File_Not_Found(filename);
