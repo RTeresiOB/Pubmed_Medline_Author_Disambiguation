@@ -544,6 +544,7 @@ class cCluster_Info;	//forward declaration.
  * for example: "KIA.SILVERBROOK##GEORGE.SPECTOR##", assuming the delimiter is "##";
  *
  */
+
 class cBlocking_Operation_By_Coauthors : public cBlocking_Operation {
 private:
 	map < const cRecord *, cGroup_Value, cSort_by_attrib > patent_tree;
@@ -557,7 +558,10 @@ private:
 
 public:
 	cBlocking_Operation_By_Coauthors(const list < const cRecord * > & allrec, const cCluster_Info& cluster, const unsigned int coauthors);
+	//cBlocking_Operation_By_Coauthors(const list < const cRecord * > & allrec, const cCluster_Info& cluster, const unsigned int coauthors,
+	//									const bool pubmed);
 	cBlocking_Operation_By_Coauthors(const list < const cRecord * > & allrec, const unsigned int num_coauthors);
+	cBlocking_Operation_By_Coauthors(const list < const cRecord * > & allrec, const unsigned int num_coauthors, const bool pubmed);
 	string extract_blocking_info(const cRecord *) const;
 	void build_uid2uinv_tree( const cCluster_Info &);
 	const map < const cRecord *, cGroup_Value, cSort_by_attrib > & get_patent_tree() const {return patent_tree;}

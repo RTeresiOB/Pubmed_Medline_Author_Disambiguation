@@ -416,10 +416,44 @@ cBlocking_Operation_By_Coauthors::cBlocking_Operation_By_Coauthors(const list < 
 	}
 }
 
-
+/*
+// Overload to change sorting from Patent to article
+cBlocking_Operation_By_Coauthors::cBlocking_Operation_By_Coauthors(const list < const cRecord * > & all_rec_pointers,
+																	const cCluster_Info & cluster, const unsigned int coauthors,
+																	const bool pubmed) : patent_tree(cSort_by_attrib(cPMID::static_get_class_name())), num_coauthors(coauthors) {
+	if ( num_coauthors > 4 ) {
+		std::cout << "================ WARNING =====================" << std::endl;
+		std::cout << "Number of coauthors in which cBlocking_Operation_By_Coauthors uses is probably too large. Number of coauthors = " << num_coauthors << std::endl;
+		std::cout << "==================END OF WARNING ================" << std::endl;
+	}
+	build_patent_tree(all_rec_pointers);
+	build_uid2uinv_tree(cluster);
+	for ( unsigned int i = 0; i < num_coauthors; ++i ) {
+		infoless += cBlocking_Operation::delim;
+		infoless += cBlocking_Operation::delim;
+	}
+}
+*/
 
 cBlocking_Operation_By_Coauthors::cBlocking_Operation_By_Coauthors(const list < const cRecord * > & all_rec_pointers, const unsigned int coauthors)
 	: patent_tree(cSort_by_attrib(cPatent::static_get_class_name())), num_coauthors(coauthors) {
+	if ( num_coauthors > 4 ) {
+		std::cout << "================ WARNING =====================" << std::endl;
+		std::cout << "Number of coauthors in which cBlocking_Operation_By_Coauthors uses is probably too large. Number of coauthors = " << num_coauthors << std::endl;
+		std::cout << "==================END OF WARNING ================" << std::endl;
+	}
+	build_patent_tree(all_rec_pointers);
+	for ( unsigned int i = 0; i < num_coauthors; ++i ) {
+		infoless += cBlocking_Operation::delim + cBlocking_Operation::delim;
+		infoless += cBlocking_Operation::delim + cBlocking_Operation::delim;
+	}
+}
+
+// Overload function for Pubmed
+
+cBlocking_Operation_By_Coauthors::cBlocking_Operation_By_Coauthors(const list < const cRecord * > & all_rec_pointers, const unsigned int coauthors,
+																	const bool pubmed)
+	: patent_tree(cSort_by_attrib(cPMID::static_get_class_name())), num_coauthors(coauthors) {
 	if ( num_coauthors > 4 ) {
 		std::cout << "================ WARNING =====================" << std::endl;
 		std::cout << "Number of coauthors in which cBlocking_Operation_By_Coauthors uses is probably too large. Number of coauthors = " << num_coauthors << std::endl;
@@ -472,17 +506,17 @@ void cBlocking_Operation_By_Coauthors::build_uid2uinv_tree( const cCluster_Info 
 	uinv2count_tree.clear();
 	uid2uinv_tree.clear();
 	unsigned int count = 0;
-	typedef list<cCluster> cRecGroup;
+	typedef list<cCluster *> cRecGroup; // Changed to be a list to pointers
 	std::cout << "Building trees: 1. Unique Record ID to Unique Inventer ID. 2 Unique Inventer ID to Number of holding patents ........" << std::endl;
 	//for ( map < string, cRecGroup >::const_iterator p = cluster.get_cluster_map().begin(); p != cluster.get_cluster_map().end(); ++p ) {
 	for ( map < string, cRecGroup >::const_iterator p = cluster.get_cluster_map().begin(); p != cluster.get_cluster_map().end(); ++p ) {
 		for ( cRecGroup::const_iterator q = p->second.begin(); q != p->second.end(); ++q ) {
-			const cRecord * value = q->get_cluster_head().m_delegate;
+			const cRecord * value = (*q)->get_cluster_head().m_delegate;
 			map < const cRecord *, unsigned int >::iterator pcount = uinv2count_tree.find(value);
 			if ( pcount == uinv2count_tree.end() )
 				pcount = uinv2count_tree.insert(std::pair<const cRecord *, unsigned int>(value, 0)).first;
 
-			for ( cGroup_Value::const_iterator r = q->get_fellows().begin(); r != q->get_fellows().end(); ++r ) {
+			for ( cGroup_Value::const_iterator r = (*q)->get_fellows().begin(); r != (*q)->get_fellows().end(); ++r ) {
 				const cRecord * key = *r;
 				uid2uinv_tree.insert(std::pair< const cRecord * , const cRecord *> (key, value ));
 				++ ( pcount->second);
@@ -1655,13 +1689,14 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 
 		// Vector is in order of attribute indices
 		vector < unsigned int > screen_sp = key1->record_compare(*key2);
-
 		// Before we check the ratio, we want to check for the two cases when ratios aren't used
 			// 1. The two records share the same article/patent -> LOW R-value
 			// 2. The two records share an email address -> HIGH R-value
-		if(screen_sp.at(email_index) != cPMID::max_value) // Going to define max value as not matching
-			return std::pair<const cRecord *, double> (NULL, 0);  // Don't compare Blocks
-		else if(screen_sp.at(email_index) != cEmail::max_value){
+		// I think the error is here
+		// TO DO
+		//if(screen_sp.at(email_index) != cPMID::max_value) // Going to define max value as not matching
+			//return std::pair<const cRecord *, double> (NULL, 0);  // Don't compare Blocks
+		//else if(screen_sp.at(email_index) != cEmail::max_value){
 			/// LEFT OFF HERE 
 			// Need to change screen_r (and normal r's later) to adjust for number of people with name (or size of block?)
 			// This change only occurs if the first name gets a perfect match (11). Done but unchecked.
@@ -1686,7 +1721,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 			const double screen_p = 1.0 / ( 1.0 + ( 1.0 - prior )/ prior / screen_r );
 			if ( screen_p < 0.3 || screen_sp.at(firstname_index) == 0 || screen_sp.at(midname_index) == 0 || screen_sp.at(lastname_index) == 0 )
 				return std::pair<const cRecord *, double> (NULL, 0);
-		}
+		//}
 	}
 	const bool partial_match_mode = true;
 
@@ -1720,13 +1755,13 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 			if ( tempsp.at(firstname_index) == 0 || tempsp.at(midname_index) == 0 || tempsp.at(lastname_index) == 0 )
 				return std::pair<const cRecord *, double> (NULL, 0);
 
-			if(tempsp.at(email_index) != cPMID::max_value) // Going to define max value as not matching
-				r_value = 10e-20; 
-			else if(tempsp.at(email_index) == cEmail::max_value){
-				r_value = 10e20;
-			} else{
+			//if(tempsp.at(pmidl_index) != cPMID::max_value) // Going to define max value as not matching
+			//	r_value = 10e-20; 
+			//else if(tempsp.at(email_index) == cEmail::max_value){
+			//	r_value = 10e20;
+			//} else{
 				r_value = fetch_ratio(tempsp, ratio.get_ratios_map());
-			}
+			//}
 
 			if ( r_value == 0 ) {
 				interactive += 0;
@@ -1884,7 +1919,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
     const double probability = ( cohesion1 * match1_size * ( match1_size - 1 )
                                 + cohesion2 * match2_size * ( match2_size - 1 )
                                 + 2.0 * inter ) / ( match1_size + match2_size) / (match1_size + match2_size - 1 );
-    //ATTENSION: RETURN A NON-NULL POINTER TO TELL IT IS A MERGE. NEED TO FIND A REPRESENTATIVE IN THE MERGE PART.
+    //ATTENTION: RETURN A NON-NULL POINTER TO TELL IT IS A MERGE. NEED TO FIND A REPRESENTATIVE IN THE MERGE PART.
     return std::pair<const cRecord *, double>( key1, probability );
     
 }
@@ -2368,6 +2403,8 @@ cAttribute * create_attribute_instance ( const string & id ) { //
 	}
 	else if ( id == cApplyYear::static_get_class_name() ) {
 		p = new cApplyYear;
+	} else if ( id == cPubDate::static_get_class_name() ) {
+		p = new cPubDate;
 	}
 	else if ( id == cCity::static_get_class_name() ) {
 		p = new cCity;
@@ -2449,8 +2486,12 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 			}
 		}
 		if ( j == total_col_names.size() ) {
+			std::cout << requested_columns.at(2) << '\n' << total_col_names.at(13) << std::endl;
+			int a = (requested_columns.at(0) == total_col_names.at(13));
+			std::cout << a << std::endl;
 			std::cerr << "Critical Error in reading " << txt_file << std::endl
 						<<"Column names not available in the first line. Please Check the correctness." << std::endl;
+
 			throw cException_ColumnName_Not_Found(requested_columns.at(i).c_str());
 		}
 	}
@@ -2604,6 +2645,9 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	return true;
 }
 
+#if 0
+
+// Not sure why this code is copied???
 //  Fills in array of pointers of cAttributes with their concrete type.
 //  Each reference passed to the function will be from requested_columns,
 //   filled in by the user in EngineConfig.txt.
@@ -2686,7 +2730,7 @@ cAttribute * create_attribute_instance ( const string & id ) { //
 
 	return p;
 }
-
+#endif
 
 const cRecord_Reconfigurator * generate_interactive_reconfigurator( const cAttribute * pAttrib) {
 	vector <string > linked_attribs (pAttrib->get_interactive_class_names());
