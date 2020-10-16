@@ -362,9 +362,9 @@ def parse_author_affiliation(medline):
                     affiliation = ""
                     for node in affiliations:
                         for i in node.getiterator():
-                            if i.tag=='Affiliation' && affiliation:
+                            if i.tag=='Affiliation' and not affiliation:
                                 affiliation = i.text
-                            else if i.tag=='Affiliation':
+                            elif i.tag=='Affiliation':
                                 affiliation = ';'.join([affiliation, i.text])
                     affiliation = affiliation.replace(
                         "For a full list of the authors' affiliations please see the Acknowledgements section.",
