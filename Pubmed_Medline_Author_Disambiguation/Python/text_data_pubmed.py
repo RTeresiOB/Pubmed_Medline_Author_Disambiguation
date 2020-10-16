@@ -11,6 +11,7 @@ The preprocessing script for Pubmed/Medline Disambiguation.
 import os
 import io
 import sys
+from  subprocess import call
 import re
 from csv import reader, writer
 from pathlib import Path
@@ -21,6 +22,7 @@ import pandas as pd
 from datetime import datetime
 import gzip
 from pubmed_parser import medline_parser
+from pubmed_process import pubmed_processor
 
 '''
 Assign Global Variables:
@@ -84,216 +86,6 @@ def download_pubmed_data():
     """Download zipped xml from the medline website."""
     from subprocess import call
     call("./pubmed_update")
-    
-
-def process_data(filepath, filename, respath, rm_stopwords=True,
-                 stop_paths=None):
-    """
-    Take zipped xml from medline and transform it into a clean, gzipped csv.
-    
-    rm_stopwords set true to remove appropriate stopwords from title,
-    affiliation, and mesh fields.
-    stop_paths = List or tuple of paths to title, affiliation, and mesh
-                stopwords in that order. Default is none - take paths from
-                main function, where the paths are defined globally
-    """
-    def clean_string(string, stopword_list = None,
-                 rm_stopwords = True, mesh =  False):
-        """Convert the string to lower and take out stopwords."""
-    
-        # If we don't supply a stopword list, but don't have remove stopwords set to False, we raise an error
-        if stopword_list is None and rm_stopwords:
-            raise Exception('Please Supply a Stopword List or set rm_stopwords'
-                            'to False')
-            
-        # Mesh listings need a slightly different treatment
-        if mesh: 
-            # Remove numerical MeSH Codes
-            string = [ re.sub(r'([ ]?D\d{6}\:)','',x) for x in string]
-            string = [x.lower() for x in string]
-            if rm_stopwords:
-                
-                # Remove stop words
-                string = [x for x in string if x not in stopword_list]
-
-            # Convert to '/' separated string
-            string = '/'.join(string)
-            
-
-            #string = re.sub(r'([ ]?d\d{6}\:' + r'|[ ]?d\d{6}\:'.join(stopword_list) + r')', '', string)
-            # Now I only want to keep the unique ID
-            #string = re.sub(r'[ ]?(d\d{6})(\:[a-z\-\'\.\, ]+)', r'\1', string)
-            return(string)
-        else:  
-            if type(string) is list:
-                string = string = ('/'.join(string)).lower()
-            # First, convert the string to lower
-            string = string.lower()
-            string = re.sub(r'\W+|\b[a-z]\b', ' ', string)
-                
-            # Remove stopwords if the option is set to true
-            if rm_stopwords:  
-                    
-                string = re.sub(r'\b(' + r'| '.join(stopword_list) +
-                                r')\b\s*', ' ', string)
-                
-            # Trim whitespaces (induced by cleaning or otherwise)
-            string = string.strip()                 # From beginning and end
-            string = re.sub(r'[ ]+'," ",string)     # From the middle
-            return(string)
-        
-    def extract_email_from_affiliations(affiliation):
-        """Extract an author's email from their list of affiliations."""
-        try:
-            emailregex = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
-            return(re.findall(emailregex, affiliation)[0])
-        except:
-            return('')
-        
-    def read_stoplist(stoplistpath, sep = ", "):
-        """
-        Parse our list of stopwords.
-        
-        stoplistpath = a path to a .txt file with stopwords
-        sep = Separator of words in list (separated by ", " by default)
-        """
-        with open(stoplistpath, 'r') as file:
-            data = file.read().split(sep)
-        return(data)
-    
-    def copy_remove(author, coauthors):
-        """Remove author from list of coauthors."""
-        lcopy = list(coauthors)
-        lcopy.remove(author)
-        return(lcopy)
-    
-    print(filename + " - start")
-    begin = datetime.now()
-    print(filename + " - load data")
-    df = medline_parser.parse_medline_xml(filepath)
-    df = pd.DataFrame(df)
-    print(filename + " - save to " + respath)
-    
-    # Get rid of unneeded columns -- can maybe work this into the parser later
-    df = df.drop(['publication_types', 'chemical_list',
-                  'keywords', 'doi', 'references',
-                  'delete','pmc','other_id','medline_ta',
-                  'nlm_unique_id','issn_linking','country'],
-                 axis=1)
-
-    # Sometimes authors and affiliations not read in as list
-    if type(df.loc[2,'authors']) is not list:
-        df['authors'] = df['authors'].apply(lambda x:x.split(";"))
-        df['affiliations'] = df['affiliations'].apply(lambda x:x.split(";"))
-    
-    # Now create coauthors column (Same as authors column for now)
-    df['coauthors'] = df['authors']
-
-    # Explode Name and Affiliation cols.
-    # Key cols now author-article, not article.
-    df = df.explode(column="authors")
-    
-    # Rename authors to author (the author in this observation)
-    df.rename(columns={'authors': 'author'}, inplace=True)
-    
-    # Now remove author from coauthor list.
-    # Careful not to remove other authors with same name. Use list.remove()
-    #
-    # Explode apparently makes variables in slots that used to be in the same
-    # row references of the same object. 
-    # (i.e. the list coauthors for every row in an article are references to 
-    # the same variable)
-    #
-    # Therefore we have to make a copy of each list and then remove the author
-    # from the row of coauthors.
-    #
-    # Finally, convert the list to a '/' joined string
-    df['coauthors'] = ['/'.join(copy_remove(author, coauthors))
-                          for author, coauthors 
-                          in zip(df['author'],df['coauthors'])]
-    
-    
-    # Extract emails
-    df['email'] = [extract_email_from_affiliations(affiliation) 
-                       for affiliation in df['affiliations']]
-    
-    # Replace missing values (mesh, affiliation, or title) with ''
-    nacols = ['mesh_terms','affiliations','title', 'email']
-    df[nacols] = df[nacols].fillna('')
-    
-    # Clean strings
-    # Take out stopwords, non-alphanumeric chars, and single-character words
-    if rm_stopwords:
-        if stop_paths is None:
-            df['title'] =  [clean_string(title,read_stoplist(title_stop_path))
-                                if title != '' else ''
-                                for title in df['title']]
-            df['affiliations'] = [clean_string(affiliation,
-                                               read_stoplist(affil_stop_path))
-                                      if affiliation != '' else ''
-                                      for affiliation in df['affiliations']]
-            df['mesh_terms'] =  [clean_string(mesh_term,
-                                              read_stoplist(mesh_stop_path),
-                                              mesh = True)
-                                     if mesh_term != '' else ''
-                                     for mesh_term in df['mesh_terms']]
-        elif len(stop_paths) == 3:
-            try:
-                df['title'] =  [clean_string(title,
-                                             read_stoplist(stop_paths[0]))
-                                for title in df['title']]
-                df['affiliations'] = [clean_string(affiliation,
-                                               read_stoplist(stop_paths[1]))
-                                      for affiliation in df['affiliations']]
-                df['mesh_terms'] =  [clean_string(mesh_term,
-                                              read_stoplist(stop_paths[2]),
-                                              mesh = True)
-                                     for mesh_term in df['mesh_terms']]
-            except Exception:
-                raise Exception("Error while trying to read stoplists not"
-                                " defined in main() function.")
-    else:
-        df['title'] =  [clean_string(title,rm_stopwords = False) 
-                            for title in df['title']]
-        df['affiliations'] =  [clean_string(affiliation,rm_stopwords = False)
-                                   for affiliation in df['affiliations']]
-        df['mesh_terms'] =  [clean_string(mesh_term,rm_stopwords = False) 
-                                 for mesh_term in df['mesh_terms']]
-    
-    # Save to a compressed csv in the results directory
-    df.to_csv(respath, compression = "gzip", sep=",", index = False)
-    end = datetime.now() - begin
-    print(filename + " - done - " + str(np.round(end.seconds / 60)) + "min")
-    
-def start(text_data_dir, res_dir, nprocs=8):
-    '''
-    entry function
-
-    text_data_dir: folder of raw data
-    text_res_dir: folder of output
-    verbose: int. Information is printed every N records
-    nprocs: number of cores in parallel
-    '''
-
-    p = Pool(processes=nprocs)
-    for dirpath, _, filenames in os.walk(text_data_dir):
-        for filename in filenames[:40]:
-            if "gz" in filename and 'md5' not in filename and 'copy' not in filename:
-                filepath = os.path.join(dirpath, filename)
-                print(filepath)
-                res_name = filename.split(".")[0] + ".csv.gz"
-                respath = os.path.join(res_dir, res_name)
-                if os.path.exists(respath):
-                    pass
-                else:
-                    p.apply_async(process_data, args = (filepath,filename,
-                                                        respath, True,
-                                                        [title_stop_path,
-                                                         affil_stop_path,
-                                                         mesh_stop_path]))
-    p.close()
-    p.join()
-
 
 def combine( res_dir, combined_dir, nprocs, keep_original_files=True):
     """Append all of the smaller zipped files together in a new "full" file."""
@@ -307,10 +99,12 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files=True):
                         "instead received" + len(filetuple) + ".")
             print(errmsg)
             raise Exception()
+        print("111")
         file1 = pd.read_csv(filetuple[1], compression = "gzip",
                             sep = ",", keep_default_na=False)
         # Append to other file
-        file1.to_csv(filetuple[0], compression= "gzip", mode = "a", sep = ",")
+        file1.to_csv(filetuple[0], compression= "gzip", mode = "a", sep = ",",
+                     header=False, index=False)
         # Remove other file from hard drive
         os.remove(filetuple[1])
             
@@ -331,7 +125,6 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files=True):
         Adapted to work with .gzip files using the answers found on:
          'https://stackoverflow.com/questions/9252812
         """
-        
         # Open the input_file in read mode and output_file in write mode
         with gzip.open(input_file, 'rt') as read_obj, \
              gzip.open(output_file, 'wt') as write_obj:
@@ -342,7 +135,7 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files=True):
             # Read each row of the input csv file as list
             for row in csv_reader:
                 # Pass the list / row in the transform function to add column text for this row
-                transform_row(row, csv_reader.line_num)
+                transform_row(row, csv_reader.line_num) # transform_row called by parent function
                 # Write the updated row / list to the output file
                 csv_writer.writerow(row)
         
@@ -360,7 +153,6 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files=True):
     # Put file names in a tuple and send them through with Pool.map
     filetuples = list()
     
-    ## ALMOST WORKS GETTING FileNotFoundError: [Errno 2] No such file or directory: '/Volumes/LaCie/PubmedData_Update_2019/Clean_Csvs/pubmed20n0005.csv.gz'
     while len(files) > 1:
         # Make an iterator of the files variable
         iterfiles = iter(files)
@@ -422,30 +214,30 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files=True):
     except Exception as e:
         pass
 
-
     # Change file name of combined dataset to full_pubmed.csv.gz
     full_data_dir =  os.path.dirname(files[0])
     os.rename(files[0],full_data_dir + "/full_pubmed_no_id.csv.gz")
-
+    exit()
     # Add Unique_Record_ID Column to full data
     add_column_in_csv(full_data_dir + "/full_pubmed_no_id.csv.gz",
                       full_data_dir + "/full_pubmed.csv.gz",
-                  lambda row, line_num: row.append("Unique_Record_ID")
+                  lambda row, line_num: row.append("RecordID".encode("utf-8"))
                   if line_num == 1 
                   else row.append(line_num - 2))  # Start with 0
     
     # Now get rid of data without the id
-    os.remove(full_data_dir + "/full_pubmed_no_id.csv.gz")
+   # os.remove(full_data_dir + "/full_pubmed_no_id.csv.gz")
 
 
-def main(download_data=False, combine_data=True, nprocs=8):
+def main(download_data=False, combine_data=False, nprocs=12,
+         affilbind_compiled=True):
     """
     text_data_dir: folder of raw data
     text_res_dir: folder of output
     verbose: int. Information is printed every N records
     nprocs: number of cores in parallel
     """
-
+    global processor
     if download_data:
         download_pubmed_data()
 
@@ -457,9 +249,16 @@ def main(download_data=False, combine_data=True, nprocs=8):
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
     
-    # start reads, cleans, and saves the ~1050 xml files into csv.gz files
-    start(text_data_dir=text_data_dir, res_dir=res_dir, nprocs=nprocs)
+    processor = pubmed_processor(working_directory = working_directory,
+                                 title_stop_path = title_stop_path,
+                                 affil_stop_path = affil_stop_path,
+                                 mesh_stop_path = mesh_stop_path)
     
+    # start reads, cleans, and saves the ~1050 xml files into csv.gz files
+    processor.start(text_data_dir=text_data_dir,
+                    res_dir=res_dir,
+                    nprocs=nprocs)
+
     # Combine appends all of the csvs into one, indexed by author-article
     if combine_data:
         combine(res_dir=res_dir, combined_dir=combined_dir, nprocs=8)

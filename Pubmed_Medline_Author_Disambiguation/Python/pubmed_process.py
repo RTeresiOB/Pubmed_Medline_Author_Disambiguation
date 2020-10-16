@@ -10,48 +10,44 @@ import os
 import io
 import sys
 import re
+from subprocess import call
 from functools import partial
 from csv import reader, writer
 from pathlib import Path
 import shutil # Copy files to another directory
-from multiprocessing import Pool
+#from multiprocessing import Pool
+from pathos.multiprocessing import ProcessingPool as PathosPool # Pool in class
 import numpy as np
 import pandas as pd
 from datetime import datetime
 import gzip
+## TO DO: Get Suffix Field out of  .xml
 from pubmed_parser import medline_parser
 
-class pubmed_process:
+class pubmed_processor:
     
-    def __init__(self, filepath, respath, title_stop_path,
+    def __init__(self, working_directory, title_stop_path,
                  affil_stop_path, mesh_stop_path, rm_stopwords=True,
                  affiliation_correction = True):
         
         # Initialize all basic variables to run functions
-        self.filepath = filepath
-        self.respath = respath
+        self.working_directory = working_directory
+        
+        #("/Users/RobertTeresi/Documents/GitHub/"
+                   # "Pubmed_Medline_Author_Disambiguation-orig/"
+                    #"Pubmed_Medline_Author_Disambiguation")
         self.rm_stopwords = rm_stopwords
         (self.affil_stop_path,
          self.mesh_stop_path,
          self.title_stop_path) = (affil_stop_path,mesh_stop_path,
                                   title_stop_path)
-                                  
-        # Return if no affiliation list correction(for name, affil correlation)
-        if affiliation_correction is not True:
-            return
-        
-        # Otherwise we make a dict
-        # The dict will be structured dict<Lastname, dict<Affiliation, Count>>
-        # Process data will return its dict when joined in start
-        # Then find way to aggregate dicts of dicts (c++?)
-        self.affil_counts = dict()
-        
-                
-        
-    
-    global process_data
-    def process_data(filepath, filename, respath,title_stop_path,
-                 affil_stop_path, mesh_stop_path, rm_stopwords=True,
+        # Compile and import C++ function
+        if os.getcwd()[-3:] != "C++":
+            os.chdir("C++")
+            call(["chmod", "755", "affilbind_compile.sh"]) # Make executable
+            call("./affilbind_compile.sh") # Execute compilation
+
+    def process_data(self, filepath, filename, respath, rm_stopwords=True,
                  stop_paths=None, affiliation_correction=True):
         """
         Take zipped xml from medline and transform it into a clean, gzipped csv.
@@ -84,7 +80,7 @@ class pubmed_process:
                 # Convert to '/' separated string
                 string = '/'.join(string)
                 
-    
+                string = re.sub(r',','',string)
                 #string = re.sub(r'([ ]?d\d{6}\:' + r'|[ ]?d\d{6}\:'.join(stopword_list) + r')', '', string)
                 # Now I only want to keep the unique ID
                 #string = re.sub(r'[ ]?(d\d{6})(\:[a-z\-\'\.\, ]+)', r'\1', string)
@@ -132,13 +128,42 @@ class pubmed_process:
             lcopy.remove(author)
             return(lcopy)
         
-        def add_to_affil_dict(d, lname, affilword):
-            if d[lname].get(affilword):
-                d[lname][1][affilword] += 1
-            else:
-                d[lname][1][affilword] = 1
+        def add_to_affil_dict(lname, affilwordvec, d):
+            for affilword in affilwordvec:
+                if affilword == '':
+                    continue
+                elif d[lname][1].get(affilword):
+                    d[lname][1][affilword] += 1
+                else:
+                    d[lname][1][affilword] = 1    
             d[lname][0] += 1
-                
+        
+        def explode(df, lst_cols, fill_value=''):
+            # make sure `lst_cols` is a list
+            if lst_cols and not isinstance(lst_cols, list):
+                lst_cols = [lst_cols]
+            # all columns except `lst_cols`
+            idx_cols = df.columns.difference(lst_cols)
+        
+            # calculate lengths of lists
+            lens = df[lst_cols[0]].str.len()
+        
+            if (lens > 0).all():
+                # ALL lists in cells aren't empty
+                return pd.DataFrame({
+                    col:np.repeat(df[col].values, df[lst_cols[0]].str.len())
+                    for col in idx_cols
+                }).assign(**{col:np.concatenate(df[col].values) for col in lst_cols}) \
+                  .loc[:, df.columns]
+            else:
+                # at least one list in cells is empty
+                return pd.DataFrame({
+                    col:np.repeat(df[col].values, df[lst_cols[0]].str.len())
+                    for col in idx_cols
+                }).assign(**{col:np.concatenate(df[col].values) for col in lst_cols}) \
+                  .append(df.loc[lens==0, idx_cols]).fillna(fill_value) \
+                  .loc[:, df.columns]
+        
         print(filename + " - start")
         begin = datetime.now()
         print(filename + " - load data")
@@ -150,21 +175,21 @@ class pubmed_process:
         df = df.drop(['publication_types', 'chemical_list',
                       'keywords', 'doi', 'references',
                       'delete','pmc','other_id','medline_ta',
-                      'nlm_unique_id','issn_linking','country'],
+                      'nlm_unique_id','issn_linking'],
                      axis=1)
     
         # Sometimes authors and affiliations not read in as list
         if type(df.loc[2,'authors']) is not list:
             df['authors'] = df['authors'].apply(lambda x:x.split(";"))
-            df['affiliations'] = df['affiliations'].apply(lambda x:x.split(";"))
+            df['affiliations'] = df['affiliations'].apply(lambda x:x.split("&&"))
         
         # Now create coauthors column (Same as authors column for now)
         df['coauthors'] = df['authors']
     
         # Explode Name and Affiliation cols.
         # Key cols now author-article, not article.
-        df = df.explode(column="authors")
-        
+        df = explode(df,['authors','affiliations'])
+
         # Rename authors to author (the author in this observation)
         df.rename(columns={'authors': 'author'}, inplace=True)
         
@@ -193,19 +218,31 @@ class pubmed_process:
         nacols = ['mesh_terms','affiliations','title', 'email']
         df[nacols] = df[nacols].fillna('')
         
+        # Split into firstname lastname
+        df = df[df['author'] != ''] # Some entries have no author!  (Can't use)
+        df = df.reset_index() # reset index
+        df = df.drop('index', axis = 1) # get rid of old index column
+        splitnames = df.author.str.split(expand=False)
+        df['Lastname'] = [x[-1] if len(x) >= 1 else '' for x in splitnames]
+        df['Firstname'] = [' '.join(x[:-1]) if len(x) >= 2 else ''
+                           for x in splitnames]
+        df = df[df['Lastname'] != '']
+        del splitnames
+        
         # Clean strings
         # Take out stopwords, non-alphanumeric chars, and single-character words
         if rm_stopwords:
             if stop_paths is None:
-                df['title'] =  [clean_string(title,read_stoplist(title_stop_path))
-                                    if title != '' else ''
-                                    for title in df['title']]
+                df['title'] = [clean_string(title,
+                                            read_stoplist(self.title_stop_path))
+                               if title != '' else ''
+                               for title in df['title']]
                 df['affiliations'] = [clean_string(affiliation,
-                                                   read_stoplist(affil_stop_path))
+                                                   read_stoplist(self.affil_stop_path))
                                           if affiliation != '' else ''
                                           for affiliation in df['affiliations']]
                 df['mesh_terms'] =  [clean_string(mesh_term,
-                                                  read_stoplist(mesh_stop_path),
+                                                  read_stoplist(self.mesh_stop_path),
                                                   mesh = True)
                                          if mesh_term != '' else ''
                                          for mesh_term in df['mesh_terms']]
@@ -231,7 +268,9 @@ class pubmed_process:
                                        for affiliation in df['affiliations']]
             df['mesh_terms'] =  [clean_string(mesh_term,rm_stopwords = False) 
                                      for mesh_term in df['mesh_terms']]
-            
+
+        # Now separate author name into first, middle, and last
+        '''
         if affiliation_correction:
             # First make dictionary structure
             # (dict<Lastnamem,pair<int, dict<Affil,count>>>)
@@ -239,23 +278,57 @@ class pubmed_process:
 
             # Dict is mutable + passed by reference
             # updates without having to return
-            begin = datetime.now()
-            map(partial(add_to_affil_dict, d=affildict),
-                df['Lastname'], df['affiliations'])
-            print("Time to populate affiliation dict = " +
-                  (datetime.now - begin).seconds)
-            # Let's check that this works
-            print(affildict[df['Lastname'].iloc[-1]])
-
+            list(map(partial(add_to_affil_dict, d=affildict),
+                df['Lastname'], df['affiliations']))
+        '''
+        # Affiliations and MeSH back into format they will be passed to diambig in
         df['affiliations'] = ['/'.join(affil) for affil in df['affiliations']]
+        # Change column names to be consistent with C++ script
+        
+        # Middlename column will be same as first name
+        df['Middlename'] = df['Firstname']
+        
+        # Affiliation Exists column
+        df['Affiliation_Exists'] = df['affiliations']\
+                    .apply(lambda x: 0 if x == '' else 1)
+        
+        df.rename(columns={'title':'Title',
+                          'email':'Email',
+                          'language':'Language',
+                          'affiliations':'Affiliations',
+                          'country':'Country',
+                          'journal':'Journal',
+                          'pmid':'PMID',
+                          'mesh_terms':'MeSH',
+                          'coauthors':'Coauthor'}, 
+                 inplace=True)
+        
+        # Drop author column
+        df = df.drop('author', axis  = 1)
+        
+        # Change title column from a list to a string
+        df['Title'] = [' '.join(x) for x in  df['Title']]
+        df['MeSH'] = [' '.join(x) for x in  df['MeSH']]
+        df['Affiliation_Exists'] = df['Affiliation_Exists'].astype(str)
+        # Remove all commas from dataframe (messes up read in C++)
+        df = df.applymap(lambda x: re.sub(r',','',x))
+        
+        df['Affiliation_Exists'] = df['Affiliation_Exists'].astype(int)
+        
+        df = df[['PMID', 'Lastname','Firstname','Middlename', 'Title',
+                 'Journal', 'pubdate','MeSH','Language',
+                 'Affiliations', 'Affiliation_Exists', 'Coauthor','Email']]
         
         # Save to a compressed csv in the results directory
         df.to_csv(respath, compression = "gzip", sep=",", index = False)
         end = datetime.now() - begin
         print(filename + " - done - " + str(np.round(end.seconds / 60)) + "min")
         
-    def start(text_data_dir, res_dir, title_stop_path,
-                 affil_stop_path, mesh_stop_path, nprocs=8):
+        # If we are correcting affiliations, return the dictionary.
+        # The pool function calling it will return with a list of all dictionaries.
+        return(affildict)
+        
+    def start(self, text_data_dir, res_dir, nprocs=8):
         '''
         entry function
     
@@ -264,22 +337,45 @@ class pubmed_process:
         verbose: int. Information is printed every N records
         nprocs: number of cores in parallel
         '''
-    
-        p = Pool(processes=nprocs)
+        p = PathosPool(nprocs)
+
+        filepathsvec,filenamesvec, respaths = list(),  list(), list()
         for dirpath, _, filenames in os.walk(text_data_dir):
-            for filename in filenames[:40]:
-                if "gz" in filename and 'md5' not in filename and 'copy' not in filename:
+            for filename in filenames[16:40]:
+                if (("gz" in filename) and ('md5' not in filename )
+                        and ('copy' not in filename)):
                     filepath = os.path.join(dirpath, filename)
                     print(filepath)
                     res_name = filename.split(".")[0] + ".csv.gz"
                     respath = os.path.join(res_dir, res_name)
-                    if os.path.exists(respath):
-                        pass
-                    else:
-                        p.apply_async(process_data, args = (filepath,filename,
-                                                            respath, True,
-                                                            [title_stop_path,
-                                                             affil_stop_path,
-                                                             mesh_stop_path]))
+                    #if os.path.exists(respath):
+                       # pass
+                    #else:
+                    if True:
+                        filepathsvec.append(filepath)
+                        filenamesvec.append(filename)
+                        respaths.append(respath)
+                        #p.apply_async(process_data, args = (filepath,filename,
+                                                           # respath, True,
+                                                           # [title_stop_path,
+                                                           #  affil_stop_path,
+                                                           #  mesh_stop_path]))
+        self.affildicts = p.amap(partial(self.process_data,
+                                    stop_paths = [self.title_stop_path,
+                                                  self.affil_stop_path,
+                                                  self.mesh_stop_path],
+                                    rm_stopwords=True,
+                                    affiliation_correction = True),
+                            filepathsvec, filenamesvec, respaths)
         p.close()
-        p.join()
+        p.join() # Having an issue joining
+        print("joined")
+        p.clear() # Delete the pool
+        # Now send the affildicts away to C++
+        #print("Sending affiliations to C++ function")
+        #import affilbind
+        #affilbind.affil_stopword_find(self.affildicts.get(),
+         #                             (self.working_directory +
+          #                            "/Results/affiliation_stopword_list.txt")
+           #                           )
+        #print("Complete")
