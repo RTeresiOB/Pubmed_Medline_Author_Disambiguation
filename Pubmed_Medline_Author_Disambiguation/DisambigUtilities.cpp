@@ -22,10 +22,12 @@ bool make_changable_training_sets_by_patent(const list <const cRecord*> & record
 
 
 	const bool is_coauthor_active = cCoauthor::static_is_comparator_activated();
+
+	// Class may be similar to the MeSH column? 
 	const bool is_class_active = cClass::static_is_comparator_activated();
 
 	if ( ! is_coauthor_active )
-		cCoauthor::static_activate_comparator();
+		cCoauthor::static_activate_comparator(); // Needed for last training set (authors on same record not matches)
 
 	if ( ! is_class_active )
 		cClass::static_activate_comparator();
@@ -41,8 +43,8 @@ bool make_changable_training_sets_by_patent(const list <const cRecord*> & record
 
 	std::ofstream outfile;
 	//xset01
-	const string xset01_equal_name_array[] = {cApplyYear::static_get_class_name() };
-	const string xset01_nonequal_name_array[] = { cAsgNum::static_get_class_name(), cCity::static_get_class_name() };
+	const string xset01_equal_name_array[] = {cApplyYear::static_get_class_name() }; // Attributes must be equal for training set
+	const string xset01_nonequal_name_array[] = { cAsgNum::static_get_class_name(), cCity::static_get_class_name() }; // Attributes must not be equal for training set
 	const vector <string> xset01_equal_name_vec (xset01_equal_name_array, xset01_equal_name_array + sizeof(xset01_equal_name_array)/sizeof(string));
 	const vector <string> xset01_nonequal_name_vec (xset01_nonequal_name_array, xset01_nonequal_name_array + sizeof(xset01_nonequal_name_array)/sizeof(string));
 
@@ -81,6 +83,90 @@ bool make_changable_training_sets_by_patent(const list <const cRecord*> & record
 
 	if ( ! is_class_active )
 		cClass::static_deactivate_comparator();
+
+	return true;
+}
+// Pubmed override to get around hard dependencies on patent attributes
+bool make_changable_training_sets_by_patent(const list <const cRecord*> & record_pointers, const vector<string >& blocking_column_names,
+						const vector < const cString_Manipulator *> & pstring_oper, const unsigned int limit, const vector <string> & training_filenames,
+						bool pubmed) {
+
+
+	if ( training_filenames.size() != 2 )
+		throw cException_Other("Training: there should be 2 changeable training sets.");
+
+
+	const bool is_coauthor_active = cCoauthor::static_is_comparator_activated();
+
+	// Class may be similar to the MeSH column? 
+	const bool is_MeSH_active = cMeSH::static_is_comparator_activated();
+
+	if ( ! is_coauthor_active )
+		cCoauthor::static_activate_comparator(); // Needed for last training set (authors on same record not matches)
+
+	if ( ! is_MeSH_active )
+		cMeSH::static_activate_comparator();
+
+	const string uid_identifier = cUnique_Record_ID::static_get_class_name();
+	cBlocking_For_Training bft (record_pointers, blocking_column_names, pstring_oper, uid_identifier, limit);
+
+	cString_Remain_Same donotchange;
+	vector <const cString_Manipulator*> t_extract_equal, t_extract_nonequal, x_extract_equal, x_extract_nonequal;
+	x_extract_equal.push_back(& donotchange);
+	x_extract_nonequal.push_back(& donotchange);
+	//x_extract_nonequal.push_back(&donotchange);
+
+	std::ofstream outfile;
+	//xset01
+	const string xset01_equal_name_array[] = {cPubDate::static_get_class_name() }; //? 
+	const string xset01_nonequal_name_array[] = { cPMID::static_get_class_name()}; //, cCity::static_get_class_name() }; //?
+	const vector <string> xset01_equal_name_vec (xset01_equal_name_array, xset01_equal_name_array + sizeof(xset01_equal_name_array)/sizeof(string));
+	const vector <string> xset01_nonequal_name_vec (xset01_nonequal_name_array, xset01_nonequal_name_array + sizeof(xset01_nonequal_name_array)/sizeof(string));
+
+
+	try{
+		cClass::static_get_class_name();
+		bft.create_set(&cBlocking_For_Training::create_xset01_on_block, xset01_equal_name_vec, x_extract_equal, xset01_nonequal_name_vec, x_extract_nonequal);
+	} catch(cException_ColumnName_Not_Found & e){
+		bft.create_set(&cBlocking_For_Training::create_xset01_on_block_pubmed, xset01_equal_name_vec, x_extract_equal, xset01_nonequal_name_vec, x_extract_nonequal);
+	}
+	//bft.create_set(&cBlocking_For_Training::create_xset01_on_block, xset01_equal_name_vec, x_extract_equal, xset01_nonequal_name_vec, x_extract_nonequal);
+	const char * current_file = training_filenames.at(0).c_str();
+	outfile.open(current_file);
+	if ( ! outfile.good() )
+		throw cException_File_Not_Found(current_file);
+	std::cout << "Creating " << current_file << " ..." << std::endl;
+	bft.print(outfile, uid_identifier);
+	outfile.close();
+	std::cout << "Done" << std::endl;
+
+	// tset05
+	bft.reset(blocking_column_names.size());
+	const string tset05_equal_name_array[] = {};
+	const string tset05_nonequal_name_array[] = {};
+	const vector <string> tset05_equal_name_vec (tset05_equal_name_array, tset05_equal_name_array + sizeof(tset05_equal_name_array)/sizeof(string));
+	const vector <string> tset05_nonequal_name_vec (tset05_nonequal_name_array, tset05_nonequal_name_array + sizeof(tset05_nonequal_name_array)/sizeof(string));
+
+	try{
+		cClass::static_get_class_name();
+		bft.create_set(&cBlocking_For_Training::create_tset05_on_block, tset05_equal_name_vec, t_extract_equal, tset05_nonequal_name_vec, t_extract_nonequal );
+	} catch(cException_ColumnName_Not_Found & e){
+		bft.create_set(&cBlocking_For_Training::create_tset05_on_block_pubmed, tset05_equal_name_vec, t_extract_equal, tset05_nonequal_name_vec, t_extract_nonequal );
+	}
+	current_file = training_filenames.at(1).c_str();
+	outfile.open(current_file);
+	if ( ! outfile.good() )
+		throw cException_File_Not_Found(current_file);
+	std::cout << "Creating " << current_file << " ..." << std::endl;
+	bft.print(outfile, uid_identifier);
+	outfile.close();
+	std::cout << "Done" << std::endl;
+
+	if ( ! is_coauthor_active )
+		cCoauthor::static_deactivate_comparator();
+
+	if ( ! is_MeSH_active )
+		cMeSH::static_deactivate_comparator();
 
 	return true;
 }
@@ -451,7 +537,7 @@ void one_step_prostprocess( const list < cRecord > & all_records, const char * l
 	map <string, const cRecord *> uid_dict;
 	const string uid_identifier = cUnique_Record_ID::static_get_class_name();
 	create_btree_uid2record_pointer(uid_dict, all_records, uid_identifier);
-	map < const cRecord *, cGroup_Value, cSort_by_attrib > patent_tree((cSort_by_attrib(cPatent::static_get_class_name())));
+	map < const cRecord *, cGroup_Value, cSort_by_attrib > patent_tree((cSort_by_attrib(cPMID::static_get_class_name())));
 	build_patent_tree( patent_tree , all_records );
 #if 0
 	list < const cRecord *> all_rec_pointers;
@@ -491,9 +577,9 @@ void one_step_prostprocess( const list < cRecord > & all_records, const char * l
 	//cs.convert_from_ClusterInfo(&match);
 	cs.read_from_file(last_disambig_result, uid_dict);
 	map < const cRecord *, const cRecord *> uid2uinv;
-	const list < cCluster > & full_list = cs.get_set();
-	for ( list < cCluster >::const_iterator t = full_list.begin(); t != full_list.end(); ++t )
-		t->add_uid2uinv(uid2uinv);
+	const list < cCluster * > & full_list = cs.get_set();
+	for ( list < cCluster * >::const_iterator t = full_list.begin(); t != full_list.end(); ++t )
+		(*t)->add_uid2uinv(uid2uinv);
 	const char * suffix = ".pplog";
 	const string logfile = string(outputfile) + suffix ;
 	//post_polish( cs, blocker_coauthor.get_uid2uinv_tree(), blocker_coauthor.get_patent_tree(), logfile);
@@ -526,17 +612,17 @@ void out_of_cluster_density( const cCluster_Set & upper, const cCluster_Set & lo
 	const unsigned int base = 100000;
 	std:: cout << "Processing out-of-cluster density ... ..." << std::endl;
 	map < const cRecord *, const cRecord *> upper_uid2uinv;
-	const list < cCluster > & full_list = upper.get_set();
-	for ( list < cCluster >::const_iterator t = full_list.begin(); t != full_list.end(); ++t )
-		t->add_uid2uinv(upper_uid2uinv);
+	const list < cCluster *> & full_list = upper.get_set();
+	for ( list < cCluster *>::const_iterator t = full_list.begin(); t != full_list.end(); ++t )
+		(*t)->add_uid2uinv(upper_uid2uinv);
 
 	unsigned int cluster_count = 0;
-	for ( list < cCluster >::const_iterator plower = lower.get_set().begin(); plower != lower.get_set().end(); ++plower ) {
+	for ( list < cCluster *>::const_iterator plower = lower.get_set().begin(); plower != lower.get_set().end(); ++plower ) {
 		++ cluster_count;
 		if ( cluster_count % base == 0 )
 			std::cout << cluster_count << " clusters have been process for out-of-cluster density." << std::endl;
 
-		const cGroup_Value & members = plower->get_fellows();
+		const cGroup_Value & members = (*plower)->get_fellows();
 		const unsigned int member_size = members.size();
 		//get prior values first
 		map < const cRecord *, int > small_cluster_counts;
@@ -589,7 +675,7 @@ void out_of_cluster_density( const cCluster_Set & upper, const cCluster_Set & lo
 			throw cException_Other("Cluster has only one sub-cluster.");
 		}
 		else {
-			const string & key = * plower->get_cluster_head().m_delegate->get_attrib_pointer_by_index(uid_index)->get_data().at(0);
+			const string & key = * (*plower)->get_cluster_head().m_delegate->get_attrib_pointer_by_index(uid_index)->get_data().at(0);
 			const double value = sum_prob / cnt;
 			ofile << key <<" : " << value << ": ";
 			for ( map < const cRecord *, int >::const_iterator pc = small_cluster_counts.begin(); pc != small_cluster_counts.end(); ++pc ) {
