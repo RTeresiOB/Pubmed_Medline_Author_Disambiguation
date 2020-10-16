@@ -148,7 +148,15 @@ public:
 									const vector<const cString_Manipulator*>& pmanipulators, const string & unique_identifier, const unsigned int qt);
 	unsigned int create_xset01_on_block(const string & block_id, const vector <unsigned int> & equal_indice, const vector<const cString_Manipulator*>& pmanipulators_equal,
 										const vector <unsigned int> &nonequal_indice, const vector<const cString_Manipulator*>& pmanipulators_nonequal, const bool is_firstround);
+	unsigned int create_xset01_on_block_pubmed(const string & block_id,
+											 const vector <unsigned int> & equal_indice,
+											 const vector<const cString_Manipulator*>& pmanipulators_equal,
+											 const vector <unsigned int> &nonequal_indice,
+											 const vector<const cString_Manipulator*>& pmanipulators_nonequal,
+											 const bool is_firstround); // Overload for pubmed (bypasses Class attribute requirement)
 	unsigned int create_tset05_on_block(const string & block_id, const vector <unsigned int> & equal_indice, const vector<const cString_Manipulator*>& pmanipulators_equal,
+											const vector <unsigned int> &nonequal_indice, const vector<const cString_Manipulator*>& pmanipulators_nonequal, const bool is_firstround);
+	unsigned int create_tset05_on_block_pubmed(const string & block_id, const vector <unsigned int> & equal_indice, const vector<const cString_Manipulator*>& pmanipulators_equal,
 											const vector <unsigned int> &nonequal_indice, const vector<const cString_Manipulator*>& pmanipulators_nonequal, const bool is_firstround);
 	unsigned int create_xset03_on_block(const string & block_id, const vector <unsigned int> & equal_indice, const vector<const cString_Manipulator*>& pmanipulators_equal,
 											const vector <unsigned int> &nonequal_indice, const vector<const cString_Manipulator*>& pmanipulators_nonequal, const bool is_firstround);

@@ -152,7 +152,7 @@ void cBlocking_For_Training::print (std::ostream & os, const string & unique_rec
 }
 
 
-
+// Match set based on shared coauthors
 unsigned int cBlocking_For_Training::create_xset01_on_block(const string & block_id,
 											 const vector <unsigned int> & equal_indice,
 											 const vector<const cString_Manipulator*>& pmanipulators_equal,
@@ -297,6 +297,150 @@ unsigned int cBlocking_For_Training::create_xset01_on_block(const string & block
 	return count;
 }
 
+// Overload for Pubmed
+unsigned int cBlocking_For_Training::create_xset01_on_block_pubmed(const string & block_id,
+											 const vector <unsigned int> & equal_indice,
+											 const vector<const cString_Manipulator*>& pmanipulators_equal,
+											 const vector <unsigned int> &nonequal_indice,
+											 const vector<const cString_Manipulator*>& pmanipulators_nonequal,
+											 const bool is_firstround) {
+	map < string, cGroup_Value >::const_iterator pmap = blocking_data.find(block_id);
+	if ( pmap == blocking_data.end() )
+		throw cException_Attribute_Not_In_Tree(block_id.c_str());
+	const cGroup_Value & dataset = pmap->second;
+
+	cGroup_Value::const_iterator & outercursor = outer_cursor_map.find(& block_id)->second;
+	cGroup_Value::const_iterator & innercursor = inner_cursor_map.find(& block_id)->second;
+	const unsigned int & quota_for_this = quota_map.find(&block_id)->second;
+	unsigned int & quota_used = used_quota_map.find(&block_id)->second;
+
+
+	static const unsigned int coauthors_index = cRecord::get_index_by_name(cCoauthor::static_get_class_name());
+	static const unsigned int classes_index = cRecord::get_index_by_name(cMeSH::static_get_class_name());
+
+
+	unsigned int count = 0;
+
+	while (  outercursor != dataset.end() ) {
+		if ( quota_used == quota_for_this ) {
+			//std::cout << pmap->second.size() << std::endl;
+			//std::cout << pmap->first << std::endl;
+			return count;
+		}
+
+		bool should_continue = false;
+
+
+		if ( ( ! cursor_ok ( outercursor, innercursor, dataset) && ( ! move_cursor( outercursor, innercursor, dataset ))))
+			break;
+
+		for ( unsigned int i = 0; i < equal_indice.size(); ++i) {
+			const string & outerstring = * (*outercursor)->get_data_by_index(equal_indice[i]).at(0);
+			const string & innerstring = * (*innercursor)->get_data_by_index(equal_indice[i]).at(0);
+			if ( pmanipulators_equal[i]->manipulate( outerstring )
+					!= pmanipulators_equal[i]->manipulate ( innerstring ) ) {
+				should_continue = true;
+				break;
+			}
+		}
+
+		if ( should_continue ) {
+			move_cursor ( outercursor, innercursor, dataset );
+			continue;
+		}
+
+		for ( unsigned int i = 0; i < nonequal_indice.size(); ++i) {
+			const string & outerstring = * (*outercursor)->get_data_by_index(nonequal_indice[i]).at(0);
+			const string & innerstring = * (*innercursor)->get_data_by_index(nonequal_indice[i]).at(0);
+			if ( pmanipulators_nonequal[i]->manipulate( outerstring )
+					== pmanipulators_nonequal[i]->manipulate( innerstring) ) {
+				should_continue = true;
+				break;
+			}
+		}
+
+
+
+		if ( should_continue ) {
+			move_cursor ( outercursor, innercursor, dataset );
+			continue;
+		}
+		//other criteria apply here.
+
+		//std::cout << "===========" << std::endl;
+		//(*outercursor)->print(std::cout);
+		//(*innercursor)->print(std::cout);
+		//std::cout << "===========" << std::endl;
+
+
+		const cAttribute * pcouter = ( (*outercursor)->get_attrib_pointer_by_index(coauthors_index));
+		const cAttribute * pcinner = ( (*innercursor)->get_attrib_pointer_by_index(coauthors_index));
+
+
+		//set < string > outer_coauthors( (*outercursor)->get_data_by_index(coauthors_index).begin(), (*outercursor)->get_data_by_index(coauthors_index).end());
+
+		/*debug only
+		for ( set<string>::const_iterator p = outer_coauthors.begin(); p!= outer_coauthors.end(); ++p)
+			std::cout << *p << " | ";
+		std::cout << "----------------<- outer"<<std::endl;
+		for ( vector<string>::const_iterator p = (*innercursor)->get_data_by_index(coauthors_index).begin(); p!= (*innercursor)->get_data_by_index(coauthors_index).end(); ++p)
+			std::cout << *p << " | ";
+		std::cout << "----------------<= inner"<<std::endl;
+
+		*/
+		/*
+		for ( vector<string>::const_iterator pinner = (*innercursor)->get_data_by_index(coauthors_index).begin();
+				pinner != (*innercursor)->get_data_by_index(coauthors_index).end(); ++ pinner) {
+			if ( outer_coauthors.find(*pinner) != outer_coauthors.end() ) {
+				should_continue = true;
+				break;
+			}
+		}
+		*/
+
+		unsigned int common_coauthors = pcouter->compare(*pcinner);
+		if ( common_coauthors > 0 )
+			should_continue = true;
+
+		if ( should_continue ) {
+			move_cursor ( outercursor, innercursor, dataset );
+			continue;
+		}
+
+		/*
+		set < const string * > outer_classes ( (*outercursor)->get_data_by_index(classes_index).begin(), (*outercursor)->get_data_by_index(classes_index).end());
+		for ( vector< const string*>::const_iterator pinner = (*innercursor)->get_data_by_index(classes_index).begin();
+				pinner != (*innercursor)->get_data_by_index(classes_index).end(); ++ pinner) {
+			if ( outer_classes.find(*pinner) != outer_classes.end() ) {
+				should_continue = true;
+				break;
+			}
+		}
+		*/
+
+		pcouter = ( (*outercursor)->get_attrib_pointer_by_index(classes_index));
+		pcinner = ( (*innercursor)->get_attrib_pointer_by_index(classes_index));
+		unsigned int common_classes = pcouter->compare(*pcinner);
+		if ( common_classes > 0 )
+			should_continue = true;
+
+		if ( should_continue ) {
+			move_cursor ( outercursor, innercursor, dataset );
+			continue;
+		}
+
+		chosen_pairs.push_back(pointer_pairs(*outercursor, *innercursor));
+		++ quota_used;
+		++count;
+
+		move_cursor ( outercursor, innercursor, dataset );
+
+	}
+	if (is_firstround)
+		quota_left += quota_for_this - count;
+
+	return count;
+}
 
 unsigned int cBlocking_For_Training::create_tset05_on_block(const string & block_id,
 											 const vector <unsigned int> & equal_indice,
@@ -400,6 +544,108 @@ unsigned int cBlocking_For_Training::create_tset05_on_block(const string & block
 	return count;
 }
 
+unsigned int cBlocking_For_Training::create_tset05_on_block_pubmed(const string & block_id,
+											 const vector <unsigned int> & equal_indice,
+											 const vector<const cString_Manipulator*>& pmanipulators_equal,
+											 const vector <unsigned int> &nonequal_indice,
+											 const vector<const cString_Manipulator*>& pmanipulators_nonequal,
+											 const bool is_firstround) {
+	map < string, cGroup_Value>::const_iterator pmap = blocking_data.find(block_id);
+	if ( pmap == blocking_data.end() )
+		throw cException_Attribute_Not_In_Tree(block_id.c_str());
+	const cGroup_Value & dataset = pmap->second;
+
+	cGroup_Value::const_iterator & outercursor = outer_cursor_map.find(& block_id)->second;
+	cGroup_Value::const_iterator & innercursor = inner_cursor_map.find(& block_id)->second;
+	const unsigned int & quota_for_this = quota_map.find(&block_id)->second;
+	unsigned int & quota_used = used_quota_map.find(&block_id)->second;
+
+	static const unsigned int coauthors_index = cRecord::get_index_by_name(cCoauthor::static_get_class_name());
+	static const unsigned int country_index = cRecord::get_index_by_name(cLanguage::static_get_class_name());
+
+	unsigned int count = 0;
+
+	while ( outercursor != dataset.end() ) {
+		if ( quota_used == quota_for_this ) {
+			return count;
+		}
+		bool should_continue = false;
+		if ( ( ! cursor_ok ( outercursor, innercursor, dataset) && ( ! move_cursor( outercursor, innercursor, dataset ))))
+			break;
+
+
+		for ( unsigned int i = 0; i < equal_indice.size(); ++i) {
+			if ( pmanipulators_equal[i]->manipulate( * (*outercursor)->get_data_by_index(equal_indice[i]).at(0) )
+					!= pmanipulators_equal[i]->manipulate ( * (*innercursor)->get_data_by_index(equal_indice[i]).at(0) ) ) {
+				should_continue = true;
+				break;
+			}
+		}
+
+		if ( should_continue ) {
+			move_cursor ( outercursor, innercursor, dataset );
+			continue;
+		}
+
+		for ( unsigned int i = 0; i < nonequal_indice.size(); ++i) {
+			if ( pmanipulators_nonequal[i]->manipulate( * (*outercursor)->get_data_by_index(nonequal_indice[i]).at(0) )
+					== pmanipulators_nonequal[i]->manipulate( * (*innercursor)->get_data_by_index(nonequal_indice[i]).at(0) ) ) {
+				should_continue = true;
+				break;
+			}
+		}
+
+		static const string problem_countries[] = {"KR", "CN", "TW", "kor", "chi"};
+		static const vector <string> problem_countries_vector (problem_countries, problem_countries + sizeof(problem_countries) / sizeof(string));
+		const cAttribute * poc = ( (*outercursor)->get_attrib_pointer_by_index(country_index));
+		const cAttribute * pic = ( (*innercursor)->get_attrib_pointer_by_index(country_index));
+
+		for ( vector < string >::const_iterator pcv = problem_countries_vector.begin(); pcv != problem_countries_vector.end(); ++pcv ) {
+			const string & outer_cty = * poc->get_data().at(0);
+			const string & inner_cty = * pic->get_data().at(0);
+			if ( outer_cty == *pcv && inner_cty == *pcv ) {
+				should_continue = true;
+				break;
+			}
+		}
+
+		if ( should_continue ) {
+			move_cursor ( outercursor, innercursor, dataset );
+			continue;
+		}
+
+			//other criteria apply here.
+		unsigned int coauthors_num = 0;
+		const cAttribute * pcouter = ( (*outercursor)->get_attrib_pointer_by_index(coauthors_index));
+		const cAttribute * pcinner = ( (*innercursor)->get_attrib_pointer_by_index(coauthors_index));
+
+		/*
+		set < string > outer_coauthors( (*outercursor)->get_data_by_index(coauthors_index).begin(), (*outercursor)->get_data_by_index(coauthors_index).end());
+		for ( vector<string>::const_iterator pinner = (*innercursor)->get_data_by_index(coauthors_index).begin();
+				pinner != (*innercursor)->get_data_by_index(coauthors_index).end(); ++ pinner) {
+			if ( outer_coauthors.find(*pinner) != outer_coauthors.end() )
+				++ coauthors_num;
+			if ( coauthors_num >= 2 )
+				break;
+		}
+		*/
+		coauthors_num = pcouter->compare(*pcinner);
+
+		if ( coauthors_num >= 2 ) {
+			chosen_pairs.push_back(pointer_pairs(*outercursor, *innercursor));
+			++ quota_used;
+			++count;
+		}
+
+		move_cursor ( outercursor, innercursor, dataset );
+
+	}
+	if (is_firstround)
+		quota_left += quota_for_this - count;
+
+	return count;
+}
+
 unsigned int cBlocking_For_Training::create_set(pFunc mf,
 								 const vector <string> & equal_indice_names,
 								 const vector<const cString_Manipulator*>& pmanipulators_equal,
@@ -446,7 +692,14 @@ unsigned int cBlocking_For_Training::create_set(pFunc mf,
 			continue;
 		}
 		else {
-			const unsigned int msize = (this->*mf)(p->first, equal_indice, pmanipulators_equal , nonequal_indice, pmanipulators_nonequal, true);
+			unsigned int msize;
+			// If doing patents try will succeed, otherwise we go to Pubmed implementation
+			try{
+				cClass::static_get_class_name();
+				unsigned int msize = (this->*mf)(p->first, equal_indice, pmanipulators_equal , nonequal_indice, pmanipulators_nonequal, true);
+			} catch(cException_ColumnName_Not_Found & e){
+				unsigned int msize = (this->*mf)(p->first, equal_indice, pmanipulators_equal , nonequal_indice, pmanipulators_nonequal, true);
+			}
 			if (msize == 0)
 				continue;
 			pair_count += msize;
