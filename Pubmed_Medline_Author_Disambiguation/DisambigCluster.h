@@ -147,7 +147,7 @@ class cCluster_Info {
 	friend class cWorker_For_Disambiguation;
 public:
 	typedef set<const cRecord *> recordset;
-	typedef list < cCluster > cRecGroup;
+	typedef list < cCluster *> cRecGroup;
 
 	friend bool disambiguate_wrapper(const map<string, cCluster_Info::cRecGroup>::iterator & p,cCluster_Info & cluster,
 								const cRatios & ratiosmap );
@@ -185,7 +185,7 @@ private:
 	cCluster_Info ( const cCluster_Info &);
 	void print(std::ostream & os) const;
 	const string & get_useless_string() const {return useless;}
-	double get_prior_value( const string & block_identifier, const list <cCluster> & rg );
+	double get_prior_value( const string & block_identifier, const list <cCluster *> & rg );
 	const map < const string *, list<double> > & get_prior_map() const {return prior_data;}
 	map < const string*, list <double> > & get_prior_map() {return prior_data;};
 	const cRecGroup & get_comparision_map(const string* bid) const;

@@ -64,7 +64,7 @@ bool cCluster_Info::is_consistent() const {
 	unsigned int temp_total = 0;
 	for ( map < string, cRecGroup >::const_iterator cp = cluster_by_block.begin(); cp != cluster_by_block.end(); ++cp ) {
 		for ( cRecGroup::const_iterator cq = cp->second.begin(); cq != cp ->second.end(); ++ cq ) {
-			temp_total += cq->get_fellows().size();
+			temp_total += (*cq)->get_fellows().size();
 		}
 	}
 	if ( temp_total != total_num )
@@ -150,8 +150,8 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 					prev_pos = pos + secondary_delim_size;
 				}
 				cCluster_Head th(key, val);
-				cCluster tempc(th, tempv);
-				tempc.self_repair();
+				cCluster * tempc = new cClusterPubmed(th, tempv, true);
+				tempc->self_repair();
 
 				if ( prim_iter != cluster_by_block.end()) {
 					prim_iter->second.push_back(tempc);
@@ -228,12 +228,12 @@ void cCluster_Info::reset_blocking(const cBlocking_Operation & blocker, const ch
 	for ( map <string, cRecGroup>::iterator p  = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
 		for ( cRecGroup::iterator cp = p->second.begin(); cp != p->second.end(); ++cp ) {
 			if ( cMiddlename::is_enabled() )
-				cp->change_mid_name();
+				(*cp)->change_mid_name();
 		}
 	}
 	for ( map <string, cRecGroup>::const_iterator p  = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
 		for ( cRecGroup::const_iterator cp = p->second.begin(); cp != p->second.end(); ++cp )
-			total_num += cp->get_fellows().size();
+			total_num += (*cp)->get_fellows().size();
 	}
 }
 
@@ -241,6 +241,8 @@ void cCluster_Info::reset_blocking(const cBlocking_Operation & blocker, const ch
  * Aim: to consolidate records which have the same blocking id together. It should be a very strict consolidation, so
  * 		the blocker should be very strict.
  */
+
+// NOTE: Changing cCluster objects to pointers to cCluster objects.
 void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocker, const list < const cRecord *> & all_rec_list) {
 	std::cout << "Preliminary consolidation ... ..." << std::endl;
 	total_num = 0;
@@ -253,25 +255,24 @@ void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocke
 		mi = cluster_by_block.find(temp);
 		if ( mi == cluster_by_block.end() ) {
 			cCluster_Head th(*p, 1);
-			cCluster tc(th, empty_fellows);
-			cRecGroup tr(1, tc);
+			cCluster * tc = new cClusterPubmed(th, empty_fellows, true); // was cCluster tc(th, empty_fellows)
+ 			cRecGroup tr(1, tc);
 			mi = cluster_by_block.insert(std::pair<string, cRecGroup>(temp, tr)).first;
 		}
-		mi->second.front().insert_elem(*p);
+		mi->second.front()->insert_elem(*p);
 	}
 
 
 	for ( mi = cluster_by_block.begin(); mi != cluster_by_block.end(); ++mi ) {
 		for ( cRecGroup::iterator gi = mi->second.begin(); gi != mi->second.end(); ++gi) {
-			gi->self_repair();
+			(*gi)->self_repair(); // changed to dereference iterator, then pointer
 		}
 	}
-
 	std::cout << "Preliminary consolidation done." << std::endl;
 
 	for ( map <string, cRecGroup>::const_iterator p  = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
 		for ( cRecGroup::const_iterator cp = p->second.begin(); cp != p->second.end(); ++cp )
-			total_num += cp->get_fellows().size();
+			total_num += (*cp)->get_fellows().size(); // Changed to dereference iterator, then pointer
 	}
 
 }
@@ -303,18 +304,18 @@ void cCluster_Info::print(std::ostream & os) const {
 	static const cException_Vector_Data except(uid_name.c_str());
 	for ( map <string, cRecGroup >::const_iterator q = cluster_by_block.begin(); q != cluster_by_block.end(); ++q ) {
 		for ( cRecGroup::const_iterator p = q->second.begin(); p != q->second.end(); ++p ) {
-			const cAttribute * key_pattrib = p->get_cluster_head().m_delegate->get_attrib_pointer_by_index(uid_index);
+			const cAttribute * key_pattrib = (*p)->get_cluster_head().m_delegate->get_attrib_pointer_by_index(uid_index);
 			os << * key_pattrib->get_data().at(0) << primary_delim;
 
 			double cohesion_value;
 			if ( is_matching )
-				cohesion_value = p->get_cluster_head().m_cohesion;
+				cohesion_value = (*p)->get_cluster_head().m_cohesion;
 			else
 				cohesion_value = 0;
 
 			os << cohesion_value << primary_delim;
 
-			for ( cGroup_Value::const_iterator q = p->get_fellows().begin(); q != p->get_fellows().end(); ++q ) {
+			for ( cGroup_Value::const_iterator q = (*p)->get_fellows().begin(); q != (*p)->get_fellows().end(); ++q ) {
 				const cAttribute * value_pattrib = (*q)->get_attrib_pointer_by_index(uid_index);
 				os << * value_pattrib->get_data().at(0) << secondary_delim;
 			}
@@ -437,7 +438,7 @@ void cCluster_Info::output_prior_value( const char * const outputfile ) const {
  * Those commented-out notes are legacy codes of adjustment, for reference purpose only.
  *
  */
-double cCluster_Info::get_prior_value( const string & block_identifier, const list <cCluster> & rg ) {
+double cCluster_Info::get_prior_value( const string & block_identifier, const list <cCluster *> & rg ) {
 	static const double prior_max = 0.95;
 	static const double prior_default = 1e-6;
 	//attention. the uninvolved index is subject to the blocking configuration.
@@ -451,8 +452,8 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 	}
 	double numerator = 0;
 	unsigned int tt = 0;
-	for ( list<cCluster>::const_iterator q = rg.begin(); q != rg.end(); ++q ) {
-		const unsigned int c = q->get_fellows().size();
+	for ( list<cCluster *>::const_iterator q = rg.begin(); q != rg.end(); ++q ) {
+		const unsigned int c = (*q)->get_fellows().size();
 		numerator += 1.0 * c * ( c - 1 );
 		tt += c;
 
@@ -554,7 +555,6 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 
 	config_prior();
 
-
 	std::cout << "Starting disambiguation ... ..." << std::endl;
 	cRecGroup emptyone;
 	const cGroup_Value emptyset;
@@ -566,14 +566,19 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 	std::cout << "There are "<< size_to_disambig << " blocks to disambiguate." << std::endl;
 	pdisambiged = cluster_by_block.begin();
 	cWorker_For_Disambiguation sample(pdisambiged, ratio, *this);
-
 	vector < cWorker_For_Disambiguation > worker_vector( num_threads, sample);
-
-	for ( unsigned int i = 0; i < num_threads; ++i )
+	for ( unsigned int i = 0; i < num_threads; ++i ){
 		worker_vector.at(i).start();
-	for ( unsigned int i = 0; i < num_threads; ++i )
-		worker_vector.at(i).join();
-
+	}
+	for ( unsigned int i = 0; i < num_threads; ++i ){
+		try{
+			worker_vector.at(i).join();
+		} catch(const std::exception& ex){
+		std::cout << "Caught Standard exception:" << i << std::endl;
+		} catch(const std::out_of_range& ex){
+		std::cout << "oor " << i << std::endl;
+		}
+	}
 	std::cout << "Disambiguation done! " ;
 	std::cout << cWorker_For_Disambiguation::get_count() << " blocks were eventually disambiguated." << std::endl;
 	cWorker_For_Disambiguation::zero_count();
@@ -586,10 +591,10 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 	for ( map < string, cRecGroup >::const_iterator p = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
 		const cRecGroup & galias = p->second;
 		for ( cRecGroup::const_iterator q = galias.begin(); q != galias.end(); ++q ) {
-			const unsigned int t = q->get_fellows().size();
+			const unsigned int t = (*q)->get_fellows().size();
 			if ( t > max_inventor ) {
 				max_inventor = t;
-				pmax = &(*q);
+				pmax = *q;
 			}
 		}
 	}
@@ -697,19 +702,19 @@ unsigned int cCluster_Info::disambiguate_by_block ( cRecGroup & to_be_disambiged
 	for ( first_iter = to_be_disambiged_group.begin(); first_iter != to_be_disambiged_group.end(); ++first_iter) {
 		second_iter = first_iter;
 		for ( ++second_iter; second_iter != to_be_disambiged_group.end(); ) {
-			cCluster_Head result = first_iter->disambiguate(*second_iter, prior_value, threshold);
+			cCluster_Head result = (*first_iter)->disambiguate(**second_iter, prior_value, threshold);
 			if ( debug_mode && result.m_delegate != NULL) {
 				std::cout << "**************************" << std::endl;
-				first_iter->get_cluster_head().m_delegate->print(std::cout);
-				std::cout << "The first cluster has " << first_iter->get_fellows().size() << " members." << std::endl;
-				second_iter->get_cluster_head().m_delegate->print(std::cout);
-				std::cout << "The second cluster has " << second_iter->get_fellows().size() << " members." << std::endl;
+				(*first_iter)->get_cluster_head().m_delegate->print(std::cout);
+				std::cout << "The first cluster has " << (*first_iter)->get_fellows().size() << " members." << std::endl;
+				(*second_iter)->get_cluster_head().m_delegate->print(std::cout);
+				std::cout << "The second cluster has " << (*second_iter)->get_fellows().size() << " members." << std::endl;
 				std::cout << "Prior value = "<< prior_value << " Probability = " << result.m_cohesion << std::endl;
 				std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl << std::endl;
 			}
 
 			if ( result.m_delegate != NULL ) {
-				first_iter->merge(*second_iter, result);
+				(*first_iter)->merge(**second_iter, result);
 				to_be_disambiged_group.erase( second_iter++ );
 			}
 			else
