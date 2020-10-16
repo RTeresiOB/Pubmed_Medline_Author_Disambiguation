@@ -94,7 +94,7 @@ template <> const string cAttribute_Basic<cUnique_Record_ID>::class_name = "Reco
 
 template <> const string cAttribute_Basic<cApplyYear>::class_name = "ApplyYear";
 
-template <> const string cAttribute_Basic<cApplyYear>::class_name = "PubDate";
+template <> const string cAttribute_Basic<cPubDate>::class_name = "pubdate";
 
 template <> const string cAttribute_Basic<cCity>::class_name = "City";
 
