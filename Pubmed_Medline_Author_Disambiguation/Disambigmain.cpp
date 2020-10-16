@@ -604,16 +604,15 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 			cs.read_from_file(oldmatchfile, uid_dict);
 			post_polish( cs, blocker_coauthor.get_uid2uinv_tree(), blocker_coauthor.get_patent_tree(), string(postprocesslog));
 			cs.output_results(network_file);
+
 			match.reset_blocking( * BlockingConfiguration::active_blocker_pointer, network_file);
 		}
 	      
-
-
 		if ( ! use_available_ratios ) {
 			const cBlocking_Operation_Multiple_Column_Manipulate & blocker_ref =
 					dynamic_cast < cBlocking_Operation_Multiple_Column_Manipulate &> ( * BlockingConfiguration::active_blocker_pointer );
 			make_changable_training_sets_by_patent( all_rec_pointers, blocker_ref.get_blocking_attribute_names(),
-					blocker_ref.get_blocking_string_manipulators(), limit,  training_changable_vec);
+					blocker_ref.get_blocking_string_manipulators(), limit,  training_changable_vec, true);
 		}
 
 		const cRatios * ratio_pointer;
@@ -634,7 +633,6 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 		}
 		else
 			ratio_pointer = new cRatios (ratiofile);
-
 
 
 		cCluster::set_ratiomap_pointer(*ratio_pointer);
