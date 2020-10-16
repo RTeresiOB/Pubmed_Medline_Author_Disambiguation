@@ -19,7 +19,7 @@ struct cSort_For_Cluster {
 
 
 //typedef set < cCluster, cSort_For_Cluster > Cluster_Container;
-typedef list < cCluster > Cluster_Container;
+typedef list < cCluster *> Cluster_Container;
 
 
 class cCluster_Set {

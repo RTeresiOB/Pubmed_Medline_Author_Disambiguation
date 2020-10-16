@@ -68,7 +68,12 @@ void post_polish( cCluster_Set & m, map < const cRecord *, const cRecord *> & ui
 	double threshold = normal_threshold ;
 	const unsigned int fi = cRecord::get_index_by_name(cFirstname::static_get_class_name());
 	const unsigned int li = cRecord::get_index_by_name(cLastname::static_get_class_name());
-	const unsigned int country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
+	unsigned int country_index;
+	try{
+		country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
+	} catch(cException_ColumnName_Not_Found & e){
+		country_index = cRecord::get_index_by_name(cLanguage::static_get_class_name());
+	}
 	const unsigned int uid_index = cRecord::get_index_by_name(cUnique_Record_ID::static_get_class_name());
 
 
@@ -96,7 +101,7 @@ void post_polish( cCluster_Set & m, map < const cRecord *, const cRecord *> & ui
 	map < const cRecord *,  Cluster_Container::iterator > record2cluster;
 	map < const cRecord *, Cluster_Container::iterator >::const_iterator z;
 	for ( Cluster_Container ::iterator p = m.get_modifiable_set().begin(); p != m.get_modifiable_set().end(); ++p ) {
-		record2cluster.insert( std::pair < const cRecord *, Cluster_Container::iterator > (p->get_cluster_head().m_delegate, p ) );
+		record2cluster.insert( std::pair < const cRecord *, Cluster_Container::iterator > ((*p)->get_cluster_head().m_delegate, p ) );
 	}
 
 	unsigned int round_cnt;
@@ -104,36 +109,36 @@ void post_polish( cCluster_Set & m, map < const cRecord *, const cRecord *> & ui
 	do {
 		round_cnt = cnt;
 		for ( Cluster_Container ::const_iterator q = m.get_set().begin(); q != m.get_set().end(); ++q ) {
-			const cAttribute * center_country_attrib = q->get_cluster_head().m_delegate->get_attrib_pointer_by_index(country_index);
+			const cAttribute * center_country_attrib = (*q)->get_cluster_head().m_delegate->get_attrib_pointer_by_index(country_index);
 			if ( ! center_country_attrib->is_informative() )
 				continue;
 			const string * centercountry = center_country_attrib->get_data().at(0);
-			if ( *centercountry == "CN" || *centercountry == "JP" || *centercountry == "KR" || *centercountry == "TW"   )
+			if ( *centercountry == "CN" || *centercountry == "JP" || *centercountry == "KR" || *centercountry == "TW" ||
+			   	*centercountry == "chi" || *centercountry == "kor" || *centercountry == "jpn")
 				threshold = asian_threshold;
 
-
 			linkages.clear();
-			find_associated_nodes( *q, uid2uinv, patent_tree, linkages);
+			find_associated_nodes( **q, uid2uinv, patent_tree, linkages);
 			list < const cRecord *> links ( linkages.begin(), linkages.end()) ;
 
 
-			const cAttribute * center_first_attrib = q->get_cluster_head().m_delegate->get_attrib_pointer_by_index(fi);
+			const cAttribute * center_first_attrib = (*q)->get_cluster_head().m_delegate->get_attrib_pointer_by_index(fi);
 			if ( center_first_attrib->get_data().empty() ) {
-				q->get_cluster_head().m_delegate->print();
+				(*q)->get_cluster_head().m_delegate->print();
 				throw cException_Other("Center First");
 			}
 			const string * centerfirst = center_first_attrib->get_data().at(0);
 
-			const cAttribute * center_last_attrib = q->get_cluster_head().m_delegate->get_attrib_pointer_by_index(li);
+			const cAttribute * center_last_attrib = (*q)->get_cluster_head().m_delegate->get_attrib_pointer_by_index(li);
 			if ( center_last_attrib->get_data().empty() ) {
-				q->get_cluster_head().m_delegate->print();
+				(*q)->get_cluster_head().m_delegate->print();
 				throw cException_Other("Center Last");
 			}
 			const string * centerlast = center_last_attrib->get_data().at(0);
 
-			const cAttribute * center_uid_attrib = q->get_cluster_head().m_delegate->get_attrib_pointer_by_index(uid_index);
+			const cAttribute * center_uid_attrib = (*q)->get_cluster_head().m_delegate->get_attrib_pointer_by_index(uid_index);
 			if ( center_uid_attrib->get_data().empty() ) {
-				q->get_cluster_head().m_delegate->print();
+				(*q)->get_cluster_head().m_delegate->print();
 				throw cException_Other("Center UID");
 			}
 			const string * centeruid = center_uid_attrib->get_data().at(0);
@@ -196,8 +201,6 @@ void post_polish( cCluster_Set & m, map < const cRecord *, const cRecord *> & ui
 					}
 					const string * quid = quid_attrib->get_data().at(0);
 
-
-
 					double first_score = strcmp95_modified(pfirst->c_str(), qfirst->c_str() );
 					double last_score = strcmp95_modified(plast->c_str(), qlast->c_str());
 
@@ -224,10 +227,10 @@ void post_polish( cCluster_Set & m, map < const cRecord *, const cRecord *> & ui
 						// need to do 4 things: merge, delete/update from cluster_set, update record2cluster, and update uid2uiv map
 
 						//1, merge
-						pmerger->merge(*pmergee, pmerger->get_cluster_head());
+						(*pmerger)->merge(*pmergee, (*pmerger)->get_cluster_head());
 
 						//2, delete from record2cluster;
-						const cRecord * newhead = pmerger->get_cluster_head().m_delegate;
+						const cRecord * newhead = (*pmerger)->get_cluster_head().m_delegate;
 						record2cluster.erase(*s);
 						if ( *r != newhead ) {
 							record2cluster.erase(*r);
@@ -237,11 +240,11 @@ void post_polish( cCluster_Set & m, map < const cRecord *, const cRecord *> & ui
 
 
 						//3, update the uid2uinv map;
-						for ( cGroup_Value::const_iterator p = pmerger->get_fellows().begin(); p != pmerger->get_fellows().end(); ++p ) {
+						for ( cGroup_Value::const_iterator p = (*pmerger)->get_fellows().begin(); p != (*pmerger)->get_fellows().end(); ++p ) {
 							map < const cRecord *, const cRecord *>::iterator t = uid2uinv.find(*p);
 							if ( t == uid2uinv.end() )
 								throw cException_Attribute_Not_In_Tree("Record pointer not in uid2uinv tree.");
-							t->second = pmerger->get_cluster_head().m_delegate;
+							t->second = (*pmerger)->get_cluster_head().m_delegate;
 						}
 
 						//4, delete from cluster_set
@@ -257,7 +260,8 @@ void post_polish( cCluster_Set & m, map < const cRecord *, const cRecord *> & ui
 						++s;
 				}
 			}
-			if ( *centercountry == "CN" || *centercountry == "JP" || *centercountry == "KR" || *centercountry == "TW"   )
+			if ( *centercountry == "CN" || *centercountry == "JP" || *centercountry == "KR" || *centercountry == "TW" ||
+			   	*centercountry == "chi" || *centercountry == "kor" || *centercountry == "jpn"  )
 				threshold = normal_threshold;
 		}
 	} while ( round_cnt != cnt );
@@ -278,13 +282,13 @@ void cCluster_Set::output_results( const char * dest_file) const {
 
 	for ( Cluster_Container ::const_iterator p = this->consolidated.begin(); p != this->consolidated.end(); ++p ) {
 
-		const cAttribute * key_pattrib = p->get_cluster_head().m_delegate->get_attrib_pointer_by_index(uid_index);
+		const cAttribute * key_pattrib = (*p)->get_cluster_head().m_delegate->get_attrib_pointer_by_index(uid_index);
 
 		os << * key_pattrib->get_data().at(0) << cCluster_Info::primary_delim;
-		double cohesion_value = p->get_cluster_head().m_cohesion;
+		double cohesion_value = (*p)->get_cluster_head().m_cohesion;
 		os << cohesion_value << cCluster_Info::primary_delim;
 
-		for ( cGroup_Value::const_iterator q = p->get_fellows().begin(); q != p->get_fellows().end(); ++q ) {
+		for ( cGroup_Value::const_iterator q = (*p)->get_fellows().begin(); q != (*p)->get_fellows().end(); ++q ) {
 			const cAttribute * value_pattrib = (*q)->get_attrib_pointer_by_index(uid_index);
 
 			os << * value_pattrib->get_data().at(0) << cCluster_Info::secondary_delim;
@@ -327,8 +331,8 @@ void cCluster_Set::read_from_file( const char * filename, const map <string, con
 				prev_pos = pos + secondary_delim_size;
 			}
 			cCluster_Head th(key, val);
-			cCluster tempc(th, tempv);
-			tempc.self_repair();
+			cCluster * tempc = new cClusterPubmed(th, tempv, true);
+			tempc->self_repair();
 			this->consolidated.push_back(tempc);
 
 			++count;
