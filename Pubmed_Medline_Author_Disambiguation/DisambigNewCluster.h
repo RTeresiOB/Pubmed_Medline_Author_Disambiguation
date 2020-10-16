@@ -75,9 +75,10 @@ public:
  */
 
 class cCluster {
-private:
+protected:
 	static const unsigned int invalid_year = 0;
-	cCluster_Head m_info;
+	//static const bool pubmed = true;
+	cCluster_Head m_info; // need to check out cCluster_Head
 	cGroup_Value m_fellows;
 	bool m_mergeable;
 	bool m_usable;
@@ -86,23 +87,27 @@ private:
 	static const map < const cRecord *, cGroup_Value, cSort_by_attrib > * reference_pointer;
 
 	cCluster & operator = ( const cCluster &);
-	void find_representative();
+	virtual void find_representative();
 
 
 	unsigned int first_patent_year;
 	unsigned int last_patent_year;
 	set < const cLatitude * > locs;
 
-	void update_locations();
-	void update_year_range();
-	unsigned int patents_gap( const cCluster & rhs) const;
+	virtual void update_locations(); // Make functions virtual that must be overriden in derived
+	virtual void update_year_range();
+	unsigned int patents_gap( const cCluster & rhs) const; // Returns difference in years between first and last record in cluster
 	bool is_valid_year() const;
+	friend class cClusterPubmed; 
 public:
 	cCluster(const cCluster_Head & info, const cGroup_Value & fellows);
+	cCluster(const cCluster_Head & info, const cGroup_Value & fellows, bool pubmed);
 	~cCluster();
 	cCluster ( const cCluster & rhs );
+	//cCluster (const cClusterPubmed & rhs);
 	void merge( cCluster & mergee, const cCluster_Head & info);
-	cCluster_Head disambiguate(const cCluster & rhs, const double prior, const double mutual_threshold) const;
+	void merge( cCluster * & mergee, const cCluster_Head & info);
+	virtual cCluster_Head disambiguate(const cCluster & rhs, const double prior, const double mutual_threshold) const;
 	static void set_ratiomap_pointer( const cRatios & r) {pratio = &r;}
 	const cGroup_Value & get_fellows() const {return m_fellows;}
 	const cCluster_Head & get_cluster_head () const {return m_info;};
@@ -123,9 +128,20 @@ public:
 	cException_Empty_Cluster(const char* errmsg): cAbstract_Exception(errmsg) {};
 };
 
-
-
-
+// Derived cCluster class for Pubmed disambiguation. 
+// Override cCluster functions that had hard dependencies on Patent Data Attributes
+class cClusterPubmed: public cCluster{
+	private:
+		void update_year_range();
+		void update_locations() {}; // Blank because no commensurate Pubmed Data
+		void find_representative();
+	public:
+		cClusterPubmed(const cCluster_Head & info, const cGroup_Value & fellows, bool pubmed);
+		cClusterPubmed(const cClusterPubmed & rhs);
+		cCluster_Head disambiguate(const cCluster & rhs, const double prior, const double mutual_threshold) const;
+		cCluster_Head disambiguate( const cCluster & rhs, const double prior, const double mutual_threshold, const bool country) const;
+}
+;
 
 
 

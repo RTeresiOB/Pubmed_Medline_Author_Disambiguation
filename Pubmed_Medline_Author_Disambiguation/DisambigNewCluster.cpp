@@ -5,6 +5,11 @@
  *      Author: ysun
  */
 
+
+/// PLAN :
+// 			Create a cCluster child  class that will be called when in Pubmed mode.
+//			cCluster
+
 #include "DisambigNewCluster.h"
 
 //static members initialization.
@@ -18,6 +23,7 @@ const map < const cRecord *, cGroup_Value, cSort_by_attrib > * cCluster::referen
 
 cCluster::cCluster(const cCluster_Head & info, const cGroup_Value & fellows)
 		: m_info(info), m_fellows(fellows), m_mergeable(true), m_usable(true) {
+			std::cout << "Normal cCluster Constructor" << std::endl;
 	if ( NULL == reference_pointer )
 		throw cException_Other("Critical Error: Patent tree reference pointer is not set yet.");
 	this->first_patent_year = invalid_year;
@@ -25,6 +31,23 @@ cCluster::cCluster(const cCluster_Head & info, const cGroup_Value & fellows)
 	this->update_year_range();
 	this->update_locations();
 }
+
+// Override the constructor (this will be called by the derived class)
+cCluster::cCluster(const cCluster_Head & info, const cGroup_Value & fellows, bool pubmed)
+		: m_info(info), m_fellows(fellows), m_mergeable(true), m_usable(true) {
+	if ( NULL == reference_pointer )
+		throw cException_Other("Critical Error: Patent tree reference pointer is not set yet.");
+	this->first_patent_year = invalid_year;
+	this->last_patent_year = invalid_year;
+	// Derived class will call its update_year_range and update_locations functions
+}
+
+// Derived class constructor
+cClusterPubmed::cClusterPubmed(const cCluster_Head & info, const cGroup_Value & fellows, bool pubmed) :
+			 cCluster(info, fellows, pubmed){
+				 update_year_range();
+				 //update_locations(); // As far as I know, there is no sensible use of location
+			 };
 
 /*
  * Aim: merge the mergee object into "*this", with the new cluster head = info ( Actually only the cohesion is used,
@@ -61,8 +84,41 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 
 	this->find_representative();
 	this->update_year_range();
-	this->update_locations();
+	//this->update_locations();
 	mergee.m_mergeable = false;
+}
+
+// Keeping both versions of this function while debugging
+void cCluster::merge( cCluster * & mergee, const cCluster_Head & info ) {
+	if ( this->m_mergeable == false )
+		throw cException_Empty_Cluster("Merging error: merger is empty.");
+	if ( (*mergee).m_mergeable == false )
+		throw cException_Empty_Cluster("Merging error: mergEE is empty.");
+
+	static const unsigned int rec_size = cRecord::record_size();
+
+	for ( unsigned int i = 0 ; i < rec_size; ++i ) {
+		list < const cAttribute ** > l1;
+		for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
+			l1.push_back( const_cast < const cAttribute ** > ( &(*p)->get_attrib_pointer_by_index(i)  )   );
+		}
+
+		list < const cAttribute ** > l2;
+		for ( cGroup_Value::const_iterator p = (*mergee).m_fellows.begin(); p != (*mergee).m_fellows.end(); ++p ) {
+			l2.push_back( const_cast < const cAttribute ** > ( &(*p)->get_attrib_pointer_by_index(i)  )   );
+		}
+		attrib_merge(l1, l2);
+	}
+
+	this->m_info = info;
+	this->m_fellows.insert(m_fellows.end(), (*mergee).m_fellows.begin(), (*mergee).m_fellows.end());
+	(*mergee).m_fellows.clear();
+	(*mergee).locs.clear();
+
+	this->find_representative();
+	this->update_year_range();
+	//this->update_locations();
+	(*mergee).m_mergeable = false;
 }
 
 /*
@@ -128,6 +184,11 @@ cCluster::cCluster( const cCluster & rhs ) : m_info(rhs.m_info), m_fellows(rhs.m
 		throw cException_Other("cCluster Copy Constructor error.");
 }
 
+// Need copy constructor of derived class - how is this going to work...
+cClusterPubmed::cClusterPubmed( const cClusterPubmed&rhs) : cCluster(rhs){
+	;
+}
+
 /*
  * Aim: to compare "*this" with rhs, and check whether the clusters should merge. If it is a merge, the returned
  * 		cluster head consists of a non-NULL cRecord pointer and a cohesion value; if it is nor a merge, the returned cluster
@@ -138,8 +199,13 @@ cCluster::cCluster( const cCluster & rhs ) : m_info(rhs.m_info), m_fellows(rhs.m
 
 // Need to get rid of the dependence on asian countries - probably change to language and add an argument to disable
 cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, const double mutual_threshold) const {
-	static const unsigned int country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
-	static const string asian_countries[] = {"Japan", "China","Korea (South)","South Korea","JP"};
+	unsigned int country_index;
+	try{
+		country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
+	} catch(cException_ColumnName_Not_Found & e){
+		country_index = cRecord::get_index_by_name(cLanguage::static_get_class_name());
+	}
+	static const string asian_countries[] = {"Japan", "China","Korea (South)","South Korea","JP", "kor","chi","jpn"};
 	static const double asian_threshold = 0.99;
 	static const double max_threshold = 0.999;
 
@@ -185,6 +251,108 @@ cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, 
 		const double t = threshold_to_use + ( max_threshold - threshold_to_use ) / 2;
 		threshold_to_use = t;
 	}
+	if ( threshold_to_use > max_threshold )
+		threshold_to_use = max_threshold;
+
+	std::pair<const cRecord *, double > ans ( disambiguate_by_set ( this->m_info.m_delegate, this->m_fellows, this->m_info.m_cohesion,
+												rhs.m_info.m_delegate, rhs.m_fellows, rhs.m_info.m_cohesion,
+													prior_to_use, *pratio, threshold_to_use) );
+
+	return cCluster_Head(ans.first, ans.second);
+
+}
+
+// This version of disambiguate uses asian country threshold correction. Use if passing country data
+cCluster_Head cClusterPubmed::disambiguate( const cCluster & rhs, const double prior, const double mutual_threshold, const bool country) const {
+	static const unsigned int country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
+	static const string asian_countries[] = {"Japan", "China","Korea (South)","South Korea","JP"};
+	static const double asian_threshold = 0.99;
+	static const double max_threshold = 0.999;
+
+
+	if ( pratio == NULL)
+		throw cException_Other("Critical: ratios map is not set yet.");
+	if ( this->m_mergeable == false ) {
+		throw cException_Empty_Cluster("Comparison error: lhs is empty.");
+	}
+
+	double threshold = mutual_threshold;
+	const cAttribute * this_country = this->m_info.m_delegate->get_attrib_pointer_by_index(country_index);
+	const cAttribute * rhs_country = rhs.m_info.m_delegate->get_attrib_pointer_by_index(country_index);
+
+	for ( unsigned int i = 0; i < sizeof(asian_countries)/sizeof(string); ++i ) {
+		if ( this_country == rhs_country && * this_country->get_data().at(0) == asian_countries[i] ) {
+			threshold = asian_threshold > mutual_threshold ? asian_threshold : mutual_threshold;
+			break;
+		}
+	}
+
+	unsigned int gap = this->patents_gap(rhs);
+	//bool location_penalize = false;
+	//const unsigned int common_locs = num_common_elements(this->locs.begin(), this->locs.end(), rhs.locs.begin(), rhs.locs.end(), 1 );
+	//if ( gap == 0 && common_locs == 0 )
+	//	location_penalize = true;
+	static const unsigned int max_gap = 20;
+	if ( gap > max_gap )
+		gap = max_gap;
+
+	double prior_to_use = prior;
+	double threshold_to_use = threshold;
+
+	threshold_to_use = threshold + ( max_threshold - threshold ) * gap / max_gap;
+
+	if ( prior_to_use == 0 )
+		prior_to_use = 0.01;
+
+	//if ( location_penalize ) {
+	//	const double t = threshold_to_use + ( max_threshold - threshold_to_use ) / 2;
+	//	threshold_to_use = t;
+	//}
+	if ( threshold_to_use > max_threshold )
+		threshold_to_use = max_threshold;
+
+	std::pair<const cRecord *, double > ans ( disambiguate_by_set ( this->m_info.m_delegate, this->m_fellows, this->m_info.m_cohesion,
+												rhs.m_info.m_delegate, rhs.m_fellows, rhs.m_info.m_cohesion,
+													prior_to_use, *pratio, threshold_to_use) );
+
+	return cCluster_Head(ans.first, ans.second);
+
+}
+
+// This function does not ask for cCountry information
+cCluster_Head cClusterPubmed::disambiguate( const cCluster & rhs, const double prior, const double mutual_threshold) const {
+	static const double max_threshold = 0.999;
+
+
+	if ( pratio == NULL)
+		throw cException_Other("Critical: ratios map is not set yet.");
+	if ( this->m_mergeable == false ) {
+		throw cException_Empty_Cluster("Comparison error: lhs is empty.");
+	}
+
+	double threshold = mutual_threshold;
+
+	unsigned int gap = this->patents_gap(rhs);
+	//bool location_penalize = false;
+	//const unsigned int common_locs = num_common_elements(this->locs.begin(), this->locs.end(), rhs.locs.begin(), rhs.locs.end(), 1 );
+	//if ( gap == 0 && common_locs == 0 )
+	//	location_penalize = true;
+	static const unsigned int max_gap = 20;
+	if ( gap > max_gap )
+		gap = max_gap;
+
+	double prior_to_use = prior;
+	double threshold_to_use = threshold;
+
+	threshold_to_use = threshold + ( max_threshold - threshold ) * gap / max_gap;
+
+	if ( prior_to_use == 0 )
+		prior_to_use = 0.01;
+
+	//if ( location_penalize ) {
+	//	const double t = threshold_to_use + ( max_threshold - threshold_to_use ) / 2;
+	//	threshold_to_use = t;
+	//}
 	if ( threshold_to_use > max_threshold )
 		threshold_to_use = max_threshold;
 
@@ -243,6 +411,7 @@ void cCluster::self_repair() {
  * 			Then traverse the whole cluster and fill in the counter. Finally, get the most frequent.
  *
  */
+// TODO Override this with a cClusterPubmed version! 
 void cCluster::find_representative()  {
 	static const string useful_columns[] = { cFirstname::static_get_class_name(), cMiddlename::static_get_class_name(), cLastname::static_get_class_name(),
 											cLatitude::static_get_class_name(), cAssignee::static_get_class_name(), cCity::static_get_class_name(), cCountry::static_get_class_name()};
@@ -290,8 +459,83 @@ void cCluster::find_representative()  {
 
 }
 
+// Overrides cCluster definition.
+// Only difference is different "useful_columns" to find representative
+void cClusterPubmed::find_representative()  {
+	static const string useful_columns[] = { cFirstname::static_get_class_name(), cMiddlename::static_get_class_name(), cLastname::static_get_class_name(),
+											cPubDate::static_get_class_name(), cJournal::static_get_class_name(), cAffiliation_Exists::static_get_class_name(), cLanguage::static_get_class_name()};
+	static const unsigned int nc = sizeof(useful_columns)/sizeof(string);
+	vector < map < const cAttribute *, unsigned int > > tracer( nc );
+	vector < unsigned int > indice;
+	for ( unsigned int i = 0; i < nc; ++i )
+		indice.push_back ( cRecord::get_index_by_name( useful_columns[i]));
+
+	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
+		for ( unsigned int i = 0 ; i < nc; ++i ) {
+			const cAttribute * pA = (*p)->get_attrib_pointer_by_index(indice.at(i));
+			++ tracer.at(i)[pA];
+		}
+	}
+	vector < const cAttribute * > most;
+	for ( unsigned int i = 0; i < nc ; ++i ) {
+		const cAttribute * most_pA = NULL;
+		unsigned int most_cnt = 0;
+		for ( map < const cAttribute *, unsigned int >::const_iterator p = tracer.at(i).begin(); p != tracer.at(i).end(); ++p ) {
+			if ( p->second > most_cnt ) {
+				most_cnt = p->second;
+				most_pA = p->first;
+			}
+		}
+		most.push_back( most_pA );
+	}
+
+	unsigned int m_cnt = 0;
+	const cRecord * mp = NULL;
+	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
+		unsigned int c = 0;
+		for ( unsigned int i = 0 ; i < nc; ++i ) {
+			const cAttribute * pA = (*p)->get_attrib_pointer_by_index(indice.at(i));
+			if ( pA == most.at(i) )
+				++c;
+		}
+		if ( c > m_cnt ) {
+			m_cnt = c;
+			mp = *p;
+		}
+	}
+
+	this->m_info.m_delegate = mp;
+
+}
+
 void cCluster::update_year_range() {
 	static const unsigned int appyearindex = cRecord::get_index_by_name(cApplyYear::static_get_class_name());
+	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
+		const cAttribute * pAttribYear = (*p)->get_attrib_pointer_by_index(appyearindex);
+		const string * py = pAttribYear->get_data().at(0);
+		unsigned int year = atoi ( py->c_str());
+		if ( year > 2100 || year < 1500 ) {
+			//(*p)->print();
+			//throw cException_Other("Application year error.");
+			continue;
+		}
+
+		if ( this->is_valid_year() ) {
+			if ( year > this->last_patent_year )
+				this->last_patent_year = year;
+			if ( year < this->first_patent_year )
+				this->first_patent_year = year;
+		}
+		else {
+			this->first_patent_year = year;
+			this->last_patent_year = year;
+		}
+	}
+
+}
+
+void cClusterPubmed::update_year_range() {
+	static const unsigned int appyearindex = cRecord::get_index_by_name(cPubDate::static_get_class_name());
 	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
 		const cAttribute * pAttribYear = (*p)->get_attrib_pointer_by_index(appyearindex);
 		const string * py = pAttribYear->get_data().at(0);
