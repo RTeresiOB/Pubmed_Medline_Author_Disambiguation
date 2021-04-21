@@ -569,13 +569,13 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 				// String manipulator class that doesn't change the string
 				cString_Remain_Same operator_no_change;
 
-				// What is the order here? Why are we blocking on these columns?
+				// These create the initial blocks!!!!!!!
 				presort_columns.push_back(cFirstname::static_get_class_name());
 				presort_columns.push_back(cLastname::static_get_class_name());
 				//presort_columns.push_back(cAssignee::static_get_class_name());
 				//presort_columns.push_back(cStreet::static_get_class_name());
 				//presort_columns.push_back(cCity::static_get_class_name());
-				//presort_columns.push_back(cCountry::static_get_class_name());
+				presort_columns.push_back(cCountry::static_get_class_name());
 
 				//presort_columns.push_back(cClass::static_get_class_name());
 				// Make vector of string manipulators  (that don't change the string)
