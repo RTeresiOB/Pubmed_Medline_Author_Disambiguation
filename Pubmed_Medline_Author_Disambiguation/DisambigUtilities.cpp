@@ -537,8 +537,11 @@ void one_step_prostprocess( const list < cRecord > & all_records, const char * l
 	map <string, const cRecord *> uid_dict;
 	const string uid_identifier = cUnique_Record_ID::static_get_class_name();
 	create_btree_uid2record_pointer(uid_dict, all_records, uid_identifier);
+	std::cout << "A" << std::endl;
 	map < const cRecord *, cGroup_Value, cSort_by_attrib > patent_tree((cSort_by_attrib(cPMID::static_get_class_name())));
+	std::cout << "B" << std::endl;
 	build_patent_tree( patent_tree , all_records );
+	std::cout << "C" << std::endl;
 #if 0
 	list < const cRecord *> all_rec_pointers;
 	for ( list<cRecord>::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
@@ -575,16 +578,22 @@ void one_step_prostprocess( const list < cRecord > & all_records, const char * l
 #endif
 	cCluster_Set cs;
 	//cs.convert_from_ClusterInfo(&match);
+	std::cout << "D" << std::endl;
 	cs.read_from_file(last_disambig_result, uid_dict);
 	map < const cRecord *, const cRecord *> uid2uinv;
+	std::cout << "E" << std::endl;
 	const list < cCluster * > & full_list = cs.get_set();
+	std::cout << "F" << std::endl;
 	for ( list < cCluster * >::const_iterator t = full_list.begin(); t != full_list.end(); ++t )
 		(*t)->add_uid2uinv(uid2uinv);
 	const char * suffix = ".pplog";
 	const string logfile = string(outputfile) + suffix ;
 	//post_polish( cs, blocker_coauthor.get_uid2uinv_tree(), blocker_coauthor.get_patent_tree(), logfile);
+	std::cout << "G"<< std::endl;
 	post_polish( cs, uid2uinv, patent_tree, logfile);
+	std::cout << "H" << std::endl;
 	cs.output_results(outputfile);
+	std::cout << "I" << std::endl;
 }
 
 
