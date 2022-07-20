@@ -28,7 +28,8 @@ class pubmed_processor:
     
     def __init__(self, working_directory, title_stop_path,
                  affil_stop_path, mesh_stop_path, rm_stopwords=True,
-                 affiliation_correction = True):
+                 affiliation_correction = True,
+                 select_journals=False):
         
         # Initialize all basic variables to run functions
         self.working_directory = working_directory
@@ -41,14 +42,17 @@ class pubmed_processor:
          self.mesh_stop_path,
          self.title_stop_path) = (affil_stop_path,mesh_stop_path,
                                   title_stop_path)
+        self.select_journals = select_journals
         # Compile and import C++ function
         if os.getcwd()[-3:] != "C++":
             os.chdir("C++")
             call(["chmod", "755", "affilbind_compile.sh"]) # Make executable
             call("./affilbind_compile.sh") # Execute compilation
 
-    def process_data(self, filepath, filename, respath, rm_stopwords=True,
-                 stop_paths=None, affiliation_correction=True):
+    def process_data(self, filepath, filename, respath, select_journals=None,
+                     rm_stopwords=True, stop_paths=None,
+                     affiliation_correction=True, abstract=False,
+                     remove_commas=False):
         """
         Take zipped xml from medline and transform it into a clean, gzipped csv.
         
@@ -167,19 +171,41 @@ class pubmed_processor:
         print(filename + " - start")
         begin = datetime.now()
         print(filename + " - load data")
-        df = medline_parser.parse_medline_xml(filepath)
+        df = medline_parser.parse_medline_xml(filepath, reference_list=True)
         df = pd.DataFrame(df)
         print(filename + " - save to " + respath)
         
         # Get rid of unneeded columns -- can maybe work this into the parser later
+        '''
         df = df.drop(['publication_types', 'chemical_list',
                       'keywords', 'doi', 'references',
                       'delete','pmc','other_id','medline_ta',
                       'nlm_unique_id','issn_linking'],
                      axis=1)
-    
+        '''
+        df = df.drop(['publication_types', 'chemical_list', 'doi',
+                      'delete','pmc','other_id','medline_ta',
+                      'nlm_unique_id','issn_linking'],
+                     axis=1)
+        
+        # If we have a list of journals we want to use, filter data
+        if select_journals:
+            # Raise an error if list of journals is not a list
+            if type(select_journals) is not list:
+                raise TypeError("select_journals must be either None or a list.")
+            else:
+                # For now assume that we are doing a year filter
+                df = df.loc[(df['pubdate'].astype(int) < 2019) &
+                            (df['pubdate'].astype(int) > 1973)]
+                df = df[df['journal'].str.lower().isin(select_journals)]  # Filter data
+            
+            # If after filtering, the dataframe is empty, exit the function
+            if df.empty:
+                print(filename + " - Finished: No data")
+                return(None)
+            
         # Sometimes authors and affiliations not read in as list
-        if type(df.loc[2,'authors']) is not list:
+        if type(df['authors'].iloc[0]) is not list:
             df['authors'] = df['authors'].apply(lambda x:x.split(";"))
             df['affiliations'] = df['affiliations'].apply(lambda x:x.split("&&"))
         
@@ -300,7 +326,8 @@ class pubmed_processor:
                           'journal':'Journal',
                           'pmid':'PMID',
                           'mesh_terms':'MeSH',
-                          'coauthors':'Coauthor'}, 
+                          'coauthors':'Coauthor',
+                          'abstract': 'Abstract'}, 
                  inplace=True)
         
         # Drop author column
@@ -311,14 +338,15 @@ class pubmed_processor:
         df['MeSH'] = [' '.join(x) for x in  df['MeSH']]
         df['Affiliation_Exists'] = df['Affiliation_Exists'].astype(str)
         # Remove all commas from dataframe (messes up read in C++)
-        df = df.applymap(lambda x: re.sub(r',','',x))
+        if remove_commas:
+            df = df.applymap(lambda x: re.sub(r',','',x))
         
         df['Affiliation_Exists'] = df['Affiliation_Exists'].astype(int)
-        
+        '''
         df = df[['PMID', 'Lastname','Firstname','Middlename', 'Title',
                  'Journal', 'pubdate','MeSH','Language',
                  'Affiliations', 'Affiliation_Exists', 'Coauthor','Email']]
-        
+        '''
         # Save to a compressed csv in the results directory
         df.to_csv(respath, compression = "gzip", sep=",", index = False)
         end = datetime.now() - begin
@@ -326,7 +354,7 @@ class pubmed_processor:
         
         # If we are correcting affiliations, return the dictionary.
         # The pool function calling it will return with a list of all dictionaries.
-        return(affildict)
+        #return(affildict)
         
     def start(self, text_data_dir, res_dir, nprocs=8):
         '''
@@ -341,7 +369,7 @@ class pubmed_processor:
 
         filepathsvec,filenamesvec, respaths = list(),  list(), list()
         for dirpath, _, filenames in os.walk(text_data_dir):
-            for filename in filenames[16:40]:
+            for filename in filenames:
                 if (("gz" in filename) and ('md5' not in filename )
                         and ('copy' not in filename)):
                     filepath = os.path.join(dirpath, filename)
@@ -365,8 +393,10 @@ class pubmed_processor:
                                                   self.affil_stop_path,
                                                   self.mesh_stop_path],
                                     rm_stopwords=True,
-                                    affiliation_correction = True),
+                                    affiliation_correction = True,
+                                    select_journals = self.select_journals),
                             filepathsvec, filenamesvec, respaths)
+        
         p.close()
         p.join() # Having an issue joining
         print("joined")
