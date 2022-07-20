@@ -7,6 +7,7 @@ Parsers for MEDLINE XML
 """
 import re
 import numpy as np
+import datetime
 from itertools import chain
 import xml.etree.ElementTree as ET
 from collections import defaultdict
@@ -431,6 +432,33 @@ def date_extractor(journal, year_info_only):
     else:
         return "-".join(str(x) for x in filter(None, [year, month, day]))
 
+
+# Currently under construction
+def parse_history(pubmed_article):
+    """Get history information from all articles. 
+    
+
+    Parameters
+    ----------
+    pubmed_article : String
+        DESCRIPTION.
+
+    Returns
+    -------
+    List of Dictionaries {Entry type, entry }
+
+    """
+    history = pubmed_article.find("PubmedData/History")
+    
+    entrytypes = {x.attrib['PubStatus'] : 
+                  datetime.date(int(x.getchildren()[0].text), int(x.getchildren()[1].text), int(x.getchildren()[2].text)) for x in history.getchildren()
+                      if x.tag == "PubMedPubDate"}
+    
+    # Return just this for now
+    return entrytypes
+    
+    
+    
 
 def parse_references(pubmed_article, reference_list):
     """Parse references from Pubmed Article
