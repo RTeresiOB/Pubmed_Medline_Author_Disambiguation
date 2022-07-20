@@ -82,12 +82,16 @@ mesh_stop_path =  (working_directory +
                    "/Stopword_lists/pubmed_mesh_stopwords.txt")
 
 
+#journals = list(pd.read_excel('/Users/RobertTeresi/Downloads/Race and General '
+ #                             'Psych Journals.xlsx',
+  #                            sheet_name='Journal_List').Journals.str.lower())
+
 def download_pubmed_data():
     """Download zipped xml from the medline website."""
     from subprocess import call
     call("./pubmed_update")
 
-def combine( res_dir, combined_dir, nprocs, keep_original_files=True):
+def combine( res_dir, combined_dir, nprocs, keep_original_files=True, add_row_number=True):
     """Append all of the smaller zipped files together in a new "full" file."""
     
     # Pool can only use top-level functions. Make append_files a global var
@@ -155,82 +159,37 @@ def combine( res_dir, combined_dir, nprocs, keep_original_files=True):
     
     while len(files) > 1:
         # Make an iterator of the files variable
-        iterfiles = iter(files)
-        procpool = Pool(nprocs)  #, initializer=mute)
-        # Make an index to pop the files variable
-        fileidx = -1
-        
-        for file in iterfiles:
-            print(file)
-            
-            # Iterate our index along with our iterator
-            fileidx += 1
-            
-            # If our queue is full, send to processors
-            if len(filetuples) == nprocs:
-                print("Sending to cores")
-                procpool.map(append_files,filetuples, chunksize=1)
-                procpool.close()
-                procpool.join()
-                procpool = Pool(nprocs)  #, initializer=mute)
-                filetuples = list()
+        if len(files) % 2:
+            iterfiles = iter(files[:-1])
+        else:
+            iterfiles = iter(files)
+        filetuples = [(x,next(iterfiles)) for x in iterfiles]
 
-            # If there is an odd file at the end of the list, empty queue
-            # Otherwise it'd be possible for repeats in the queue on next loop
-            if (file == files[-1]):
-                print("last file in for")
-                # If we have files to be appended, append
-                if filetuples:
-                    print("Sending to cores")
-                    procpool.map(append_files,filetuples, chunksize=1)
-                    procpool.close()
-                    procpool.join()
-                    procpool = Pool(nprocs)  #, initializer=mute)
-                
-                # Now reset the list and break out of the loop
-                filetuples = list()
-                break
-            else:
-                print("Appending...")
-                # Otherwise we add a new pair of files to be appended together
-                filetuples.append((file,next(iterfiles)))
-                print("popping " + files[fileidx + 1] )
-                files.pop(fileidx + 1)
-                print("Last appended tuple.")
-                print(filetuples[-1])
-                print("Length of files is now " + str(len(files)))
-                
-                # If we are at the end of the list after append, send to cores
-                if (file == files[-1]):
-                    print("Sending to cores")
-                    procpool.map(append_files,filetuples, chunksize=1)
-                    procpool.close()
-                    procpool.join()
-                    procpool = Pool(nprocs)  #, initializer=mute)
-                    filetuples = list()
-    try:
+        del files[1::2] 
+        
+        procpool = Pool(nprocs)  #, initializer=mute)
+        
+        procpool.map(append_files,filetuples, chunksize=1)
         procpool.close()
         procpool.join()
-    except Exception as e:
-        pass
+        procpool = Pool(nprocs)  #, initializer=mute)
 
     # Change file name of combined dataset to full_pubmed.csv.gz
     full_data_dir =  os.path.dirname(files[0])
     os.rename(files[0],full_data_dir + "/full_pubmed_no_id.csv.gz")
-    exit()
     # Add Unique_Record_ID Column to full data
-    add_column_in_csv(full_data_dir + "/full_pubmed_no_id.csv.gz",
-                      full_data_dir + "/full_pubmed.csv.gz",
-                  lambda row, line_num: row.append("RecordID".encode("utf-8"))
-                  if line_num == 1 
-                  else row.append(line_num - 2))  # Start with 0
-    
+    if add_row_number:
+        add_column_in_csv(full_data_dir + "/full_pubmed_no_id.csv.gz",
+                          full_data_dir + "/full_pubmed.csv.gz",
+                      lambda row, line_num: row.append("RecordID".encode("utf-8"))
+                      if line_num == 1 
+                      else row.append(line_num - 2))  # Start with 0
+
     # Now get rid of data without the id
-   # os.remove(full_data_dir + "/full_pubmed_no_id.csv.gz")
+    os.remove(full_data_dir + "/full_pubmed_no_id.csv.gz")
 
-
-def main(download_data=False, combine_data=False, nprocs=12,
-         affilbind_compiled=True):
+def main(download_data=False, combine_data=True, nprocs=12,
+         affilbind_compiled=True, select_journals=False):
     """
     text_data_dir: folder of raw data
     text_res_dir: folder of output
@@ -249,6 +208,9 @@ def main(download_data=False, combine_data=False, nprocs=12,
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
     
+    if not select_journals:
+        journals=False
+
     processor = pubmed_processor(working_directory = working_directory,
                                  title_stop_path = title_stop_path,
                                  affil_stop_path = affil_stop_path,
@@ -258,10 +220,12 @@ def main(download_data=False, combine_data=False, nprocs=12,
     processor.start(text_data_dir=text_data_dir,
                     res_dir=res_dir,
                     nprocs=nprocs)
-
+    
     # Combine appends all of the csvs into one, indexed by author-article
     if combine_data:
         combine(res_dir=res_dir, combined_dir=combined_dir, nprocs=8)
 
+    # df.to_csv(filename, date_format='%Y%m%d')
 if __name__ == "__main__":
-        main()
+       # main(select_journals=journals)
+       main()
