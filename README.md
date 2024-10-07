@@ -1,5 +1,5 @@
 # Pubmed_Medline_Author_Disambiguation
-Attempt to repurpose CPP_Disambiguation repo for patent author disambiguation for Pubmed medical articles using methodology as outlined in Torvik papers.
+Repurpose CPP_Disambiguation repo for patent author disambiguation for Pubmed medical articles using methodology as outlined in Torvik papers.
 
 To get started contributing, or to better understand the project. Start by understanding the papers in this repository.
 
